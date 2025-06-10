@@ -1,0 +1,50 @@
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
+version = "0.2.0"
+authors = ["nekitdev <nekit@nekit.dev>"]
+edition = "2024"
+repository = "https://github.com/nekitdev/graphs-std"
+license = "MIT"
+
+[workspace.dependencies.cfg-if]
+version = "1.0.0"
+
+[workspace.dependencies.thiserror]
+version = "2.0.12"
+default-features = false
+
+[package]
+name = "graphs"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+description = "Graph data structures and algorithms."
+documentation = "https://docs.rs/graphs-std"
+readme = "README.md"
+repository.workspace = true
+license.workspace = true
+keywords = ["graph", "algorithm", "data-structure"]
+categories = ["algorithms", "data-structures"]
+
+[dependencies.graphs-core]
+path = "crates/graphs-core"
+version = "0.2.0"
+default-features = false
+
+[dependencies.graphs-simple]
+path = "crates/graphs-simple"
+version = "0.2.0"
+optional = true
+default-features = false
+
+[features]
+default = ["std", "simple"]
+simple = ["graphs-simple"]
+std = ["graphs-core/std", "graphs-simple/std"]
+alloc = ["graphs-core/alloc", "graphs-simple/alloc"]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]

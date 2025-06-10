@@ -1,0 +1,29 @@
+[package]
+name = "graphs-simple"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+description = "Simple graph data structure implementation."
+documentation = "https://docs.rs/graphs-simple"
+readme = "README.md"
+repository.workspace = true
+license.workspace = true
+keywords = ["graph", "data-structure"]
+
+[dependencies.cfg-if]
+workspace = true
+
+[dependencies.graphs-core]
+path = "../graphs-core"
+version = "0.2.0"
+
+[dependencies.thiserror]
+workspace = true
+
+[features]
+default = ["std"]
+std = ["graphs-core/std", "thiserror/std"]
+alloc = ["graphs-core/alloc"]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
