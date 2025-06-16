@@ -16,6 +16,10 @@ version = "1.0.0"
 version = "2.0.12"
 default-features = false
 
+[workspace.dependencies.indexmap]
+version = "2.9.0"
+default-features = false
+
 [package]
 name = "graphs"
 version.workspace = true
@@ -29,9 +33,24 @@ license.workspace = true
 keywords = ["graph", "algorithm", "data-structure"]
 categories = ["algorithms", "data-structures"]
 
+[dependencies.cfg-if]
+workspace = true
+
 [dependencies.graphs-core]
 path = "crates/graphs-core"
 version = "0.2.0"
+default-features = false
+
+[dependencies.graphs-algorithms]
+path = "crates/graphs-algorithms"
+version = "0.2.0"
+optional = true
+default-features = false
+
+[dependencies.graphs-map]
+path = "crates/graphs-map"
+version = "0.2.0"
+optional = true
 default-features = false
 
 [dependencies.graphs-simple]
@@ -40,11 +59,25 @@ version = "0.2.0"
 optional = true
 default-features = false
 
+[dependencies.graphs-traversal]
+path = "crates/graphs-traversal"
+version = "0.2.0"
+optional = true
+default-features = false
+
 [features]
-default = ["std", "simple"]
+# TODO: add "std" here
+default = ["map", "traversal"]
+std = [
+    "graphs-algorithms?/std",
+    "graphs-simple?/std",
+    "graphs-map?/std",
+    "graphs-traversal?/std",
+]
+algorithms = ["graphs-algorithms"]
 simple = ["graphs-simple"]
-std = ["graphs-core/std", "graphs-simple/std"]
-alloc = ["graphs-core/alloc", "graphs-simple/alloc"]
+map = ["graphs-map"]
+traversal = ["graphs-traversal"]
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

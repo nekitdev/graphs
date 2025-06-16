@@ -12,6 +12,14 @@ pub trait Kinded {
     type Kind: Kind + ?Sized;
 }
 
+impl<G: Kinded + ?Sized> Kinded for &G {
+    type Kind = G::Kind;
+}
+
+impl<G: Kinded + ?Sized> Kinded for &mut G {
+    type Kind = G::Kind;
+}
+
 /// Represents graph kinds, either [`Directed`] or [`Undirected`].
 pub trait Kind: sealed::Sealed {
     /// Indicates whether the graph is *directed*.

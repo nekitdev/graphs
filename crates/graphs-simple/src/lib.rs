@@ -22,9 +22,5 @@ cfg_if! {
 }
 
 pub mod error;
-pub mod index;
-
-pub use error::{Error, ErrorKind};
-pub use index::{EdgeIndex, NodeIndex, edge_index, node_index};
 
 pub(crate) mod next;

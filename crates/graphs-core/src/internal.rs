@@ -1,6 +1,6 @@
 macro_rules! failed {
-    ($method: ident) => {
-        concat!("call to `", stringify!($method), "` failed")
+    ($name: ident) => {
+        concat!("call to `", stringify!($name), "` failed")
     };
 }
 

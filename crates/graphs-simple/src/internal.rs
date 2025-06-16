@@ -10,23 +10,18 @@ cfg_if! {
     }
 }
 
-use graphs_core::{
-    connection::{Connection, Connector},
-    id::{DefaultId, Id},
-};
+use graphs_core::id::DefaultNodeId;
 
-use crate::{index::NodeIndex, next::Next};
-
-pub struct Node<T, I: Id = DefaultId> {
+pub struct Node<T, I: IndexId = DefaultId> {
     pub value: T,
-    pub next: Next<I>,
+    pub next: EdgeNext<I>,
 }
 
-impl<T, I: Id> Node<T, I> {
+impl<T, I: IndexId> Node<T, I> {
     pub const fn new(value: T) -> Self {
         Self {
             value,
-            next: Next::limit(),
+            next: EdgeNext::limit(),
         }
     }
 
@@ -43,25 +38,23 @@ impl<T, I: Id> Node<T, I> {
     }
 }
 
-pub type Connecting<I = DefaultId> = Connection<NodeIndex<I>>;
-
-pub struct Edge<T, I: Id = DefaultId> {
-    pub connecting: Connecting<I>,
+pub struct Edge<T, I: IndexId = DefaultId> {
+    pub connection: NodeConnection<I>,
     pub value: T,
-    pub next: Next<I>,
+    pub next: EdgeNext<I>,
 }
 
-impl<T, I: Id> Edge<T, I> {
-    pub const fn new(connecting: Connecting<I>, value: T) -> Self {
+impl<T, I: IndexId> Edge<T, I> {
+    pub const fn new(connection: NodeConnection<I>, value: T) -> Self {
         Self {
-            connecting,
+            connection,
             value,
-            next: Next::limit(),
+            next: EdgeNext::limit(),
         }
     }
 
-    pub const fn connecting(source: NodeIndex<I>, target: NodeIndex<I>, value: T) -> Self {
-        Self::new(Connecting::new(source, target), value)
+    pub const fn connecting(source: NodeId<I>, target: NodeId<I>, value: T) -> Self {
+        Self::new(NodeConnection::new(source, target), value)
     }
 
     pub const fn get(&self) -> &T {
@@ -74,14 +67,6 @@ impl<T, I: Id> Edge<T, I> {
 
     pub fn take(self) -> T {
         self.value
-    }
-}
-
-impl<T, I: Id> Connector for Edge<T, I> {
-    type Id = NodeIndex<I>;
-
-    fn connection(&self) -> Connection<Self::Id> {
-        self.connecting.copy()
     }
 }
 

@@ -1,20 +1,21 @@
 [package]
-name = "graphs-core"
+name = "graphs-traversal"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
-description = "Core functionality for graphs."
-documentation = "https://docs.rs/graphs-core"
+description = "Graph data structure traversal."
+documentation = "https://docs.rs/graphs-traversal"
 readme = "README.md"
 repository.workspace = true
 license.workspace = true
-keywords = ["graph", "core"]
+keywords = ["graph", "traversal"]
 
 [dependencies.cfg-if]
 workspace = true
 
-[dependencies.thiserror]
-workspace = true
+[dependencies.graphs-core]
+path = "../graphs-core"
+version = "0.2.0"
 
 [features]
 # TODO: add "std" here

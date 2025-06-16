@@ -8,7 +8,7 @@ use thiserror::Error;
 pub const LEAVE: i8 = -1;
 
 /// The `0` literal.
-pub const OTHER: i8 = 0;
+pub const NEITHER: i8 = 0;
 
 /// The `1` literal.
 pub const ENTER: i8 = 1;
@@ -44,7 +44,7 @@ pub enum ParseError {
 ///
 /// - [`LEAVE`] means that the edge leaves the node,
 /// - [`ENTER`] means that the edge enters the node,
-/// - [`OTHER`] means that neither of the above applies (default).
+/// - [`NEITHER`] means that neither of the above applies (default).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(i8)]
 pub enum Incidence {
@@ -53,13 +53,13 @@ pub enum Incidence {
 
     /// The edge neither leaves nor enters the node (default).
     #[default]
-    Other = OTHER,
+    Neither = NEITHER,
 
     /// The edge enters the node.
     Enter = ENTER,
 }
 
-pub use Incidence::{Enter, Leave, Other};
+pub use Incidence::{Enter, Leave, Neither};
 
 impl Incidence {
     /// Constructs [`Self`] from the given value, if possible.
@@ -70,7 +70,7 @@ impl Incidence {
     pub const fn new(value: i8) -> Result<Self, Error> {
         match value {
             LEAVE => Ok(Self::Leave),
-            OTHER => Ok(Self::Other),
+            NEITHER => Ok(Self::Neither),
             ENTER => Ok(Self::Enter),
             _ => Err(Error::new(value)),
         }

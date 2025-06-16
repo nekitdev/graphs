@@ -8,7 +8,7 @@ use core::ops::Deref;
 /// This is achieved by holding *mutable* reference to `T` and giving *immutable* references
 /// when required.
 ///
-/// [`Frozen`] implementsn [`Deref`] to `T` along with [`AsRef<T>`].
+/// [`Frozen`] implements [`Deref`] to `T` along with [`AsRef<T>`].
 ///
 /// This type is created by the [`Freeze`] trait, which exists to improve ergonomics.
 pub struct Frozen<'f, T: ?Sized> {
@@ -39,12 +39,12 @@ impl<T: ?Sized> Deref for Frozen<'_, T> {
 /// Represents types that can create [`Frozen`] values.
 ///
 /// This trait is implemented for any `T` without requiring [`Sized`].
-pub trait Freezable {
+pub trait Freeze {
     /// Freezes [`Self`]. See [`Frozen`] for more details.
     fn freeze(&mut self) -> Frozen<'_, Self>;
 }
 
-impl<T: ?Sized> Freezable for T {
+impl<T: ?Sized> Freeze for T {
     fn freeze(&mut self) -> Frozen<'_, Self> {
         Frozen::new(self)
     }

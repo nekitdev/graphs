@@ -3,7 +3,7 @@
 use core::fmt;
 
 /// Represents empty values.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Empty;
 
 /// The `empty` string literal.

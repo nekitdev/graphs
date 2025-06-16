@@ -21,9 +21,8 @@ version = "0.2.0"
 workspace = true
 
 [features]
-default = ["std"]
-std = ["graphs-core/std", "thiserror/std"]
-alloc = ["graphs-core/alloc"]
+default = []
+std = []
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

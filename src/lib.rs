@@ -3,10 +3,22 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
-#[cfg(feature = "alloc")]
-extern crate alloc;
+use cfg_if::cfg_if;
 
 pub use graphs_core as core;
 
-#[cfg(feature = "simple")]
-pub use graphs_simple as simple;
+cfg_if! {
+    if #[cfg(feature = "map")] {
+        pub use graphs_map as map;
+
+        pub use map::{GraphMap, DiGraphMap, UnGraphMap};
+    }
+}
+
+cfg_if! {
+    if #[cfg(feature = "traversal")] {
+        pub use graphs_traversal as traversal;
+
+        pub use traversal::{Dfs, DfsPostOrder, Bfs};
+    }
+}

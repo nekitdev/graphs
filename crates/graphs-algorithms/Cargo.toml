@@ -1,14 +1,14 @@
 [package]
-name = "graphs-core"
+name = "graphs-algorithms"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
-description = "Core functionality for graphs."
-documentation = "https://docs.rs/graphs-core"
+description = "Various graph algorithms."
+documentation = "https://docs.rs/graphs-algorithms"
 readme = "README.md"
 repository.workspace = true
 license.workspace = true
-keywords = ["graph", "core"]
+keywords = ["graph", "algorithm"]
 
 [dependencies.cfg-if]
 workspace = true
@@ -19,7 +19,8 @@ workspace = true
 [features]
 # TODO: add "std" here
 default = []
-std = []
+std = ["thiserror/std"]
+alloc = []
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
