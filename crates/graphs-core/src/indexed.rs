@@ -1,9 +1,6 @@
 //! Traits for converting between graph indices and identifiers.
 
-use crate::{
-    base::Base,
-    count::{EdgeCount, NodeCount},
-};
+use crate::base::Base;
 
 /// Represents graphs that can convert between node and edge indices and identifiers.
 pub trait NodeIndexed: Base {
@@ -22,11 +19,11 @@ impl<G: NodeIndexed + ?Sized> NodeIndexed for &G {
         (*self).node_bound()
     }
 
-    fn node_index(&self, id: G::NodeId) -> usize {
+    fn node_index(&self, id: Self::NodeId) -> usize {
         (*self).node_index(id)
     }
 
-    fn node_id(&self, index: usize) -> G::NodeId {
+    fn node_id(&self, index: usize) -> Self::NodeId {
         (*self).node_id(index)
     }
 }
@@ -36,11 +33,11 @@ impl<G: NodeIndexed + ?Sized> NodeIndexed for &mut G {
         (**self).node_bound()
     }
 
-    fn node_index(&self, id: G::NodeId) -> usize {
+    fn node_index(&self, id: Self::NodeId) -> usize {
         (**self).node_index(id)
     }
 
-    fn node_id(&self, index: usize) -> G::NodeId {
+    fn node_id(&self, index: usize) -> Self::NodeId {
         (**self).node_id(index)
     }
 }
@@ -62,11 +59,11 @@ impl<G: EdgeIndexed + ?Sized> EdgeIndexed for &G {
         (*self).edge_bound()
     }
 
-    fn edge_index(&self, id: G::EdgeId) -> usize {
+    fn edge_index(&self, id: Self::EdgeId) -> usize {
         (*self).edge_index(id)
     }
 
-    fn edge_id(&self, index: usize) -> G::EdgeId {
+    fn edge_id(&self, index: usize) -> Self::EdgeId {
         (*self).edge_id(index)
     }
 }
@@ -76,11 +73,11 @@ impl<G: EdgeIndexed + ?Sized> EdgeIndexed for &mut G {
         (**self).edge_bound()
     }
 
-    fn edge_index(&self, id: G::EdgeId) -> usize {
+    fn edge_index(&self, id: Self::EdgeId) -> usize {
         (**self).edge_index(id)
     }
 
-    fn edge_id(&self, index: usize) -> G::EdgeId {
+    fn edge_id(&self, index: usize) -> Self::EdgeId {
         (**self).edge_id(index)
     }
 }
@@ -89,30 +86,6 @@ impl<G: EdgeIndexed + ?Sized> EdgeIndexed for &mut G {
 ///
 /// This trait is automatically implemented for any type that implements
 /// both [`NodeIndexed`] and [`EdgeIndexed`].
-pub trait Index: NodeIndexed + EdgeIndexed {}
+pub trait Indexed: NodeIndexed + EdgeIndexed {}
 
-impl<G: NodeIndexed + EdgeIndexed + ?Sized> Index for G {}
-
-/// Represents graphs that are compact in terms of their node indices.
-///
-/// Compactness means that the entire `0..self.node_count()` range has no holes.
-pub trait NodeCompact: NodeIndexed + NodeCount {}
-
-impl<G: NodeCompact + ?Sized> NodeCompact for &G {}
-impl<G: NodeCompact + ?Sized> NodeCompact for &mut G {}
-
-/// Represents graphs that are compact in terms of their edge indices.
-///
-/// Compactness means that the entire `0..self.edge_count()` range has no holes.
-pub trait EdgeCompact: EdgeIndexed + EdgeCount {}
-
-impl<G: EdgeCompact + ?Sized> EdgeCompact for &G {}
-impl<G: EdgeCompact + ?Sized> EdgeCompact for &mut G {}
-
-/// Represents graphs that are compact in terms of both their node and edge indices.
-///
-/// This trait is automatically implemented for any type that implements
-/// both [`NodeCompact`] and [`EdgeCompact`].
-pub trait Compact: NodeCompact + EdgeCompact {}
-
-impl<G: NodeCompact + EdgeCompact + ?Sized> Compact for G {}
+impl<G: NodeIndexed + EdgeIndexed + ?Sized> Indexed for G {}

@@ -15,4 +15,4 @@ pub use bfs::Bfs;
 pub use dfs::Dfs;
 pub use dfs_post_order::DfsPostOrder;
 pub use topological::Topological;
-pub use traverse::{Traverse, TraverseIter};
+pub use traverse::{Traverse, TraverseTopological, TraverseTopologicalWalk, TraverseWalk};

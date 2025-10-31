@@ -2,6 +2,7 @@
 name = "graphs-map"
 version.workspace = true
 authors.workspace = true
+rust-version.workspace = true
 edition.workspace = true
 description = "Graph data structure using maps."
 documentation = "https://docs.rs/graphs-map"
@@ -10,12 +11,8 @@ repository.workspace = true
 license.workspace = true
 keywords = ["graph", "map"]
 
-[dependencies.cfg-if]
-workspace = true
-
 [dependencies.graphs-core]
-path = "../graphs-core"
-version = "0.2.0"
+workspace = true
 
 [dependencies.thiserror]
 workspace = true

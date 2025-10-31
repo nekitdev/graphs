@@ -1,12 +1,8 @@
-use cfg_if::cfg_if;
+#[cfg(feature = "std")]
+use std::collections::VecDeque;
 
-cfg_if! {
-    if #[cfg(feature = "std")] {
-        use std::collections::VecDeque;
-    } else {
-        use alloc::collections::VecDeque;
-    }
-}
+#[cfg(not(feature = "std"))]
+use alloc::collections::VecDeque;
 
 use graphs_core::{
     base::Base,
@@ -74,4 +70,4 @@ impl<G: Visit + Neighbors> Walker<G> for Bfs<G::NodeId, G::Visitor> {
 
 pub type BfsOf<G> = Bfs<<G as Base>::NodeId, <G as Visit>::Visitor>;
 
-pub type BfsIter<'g, G> = Walk<'g, G, BfsOf<G>>;
+pub type BfsWalk<'g, G> = Walk<'g, G, BfsOf<G>>;

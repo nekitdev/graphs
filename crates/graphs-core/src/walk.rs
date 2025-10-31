@@ -54,7 +54,7 @@ impl<'c, C: ?Sized, W: Walker<C>> Walk<'c, C, W> {
     }
 }
 
-impl<'c, C: ?Sized, W: Walker<C>> Iterator for Walk<'c, C, W> {
+impl<C: ?Sized, W: Walker<C>> Iterator for Walk<'_, C, W> {
     type Item = W::Item;
 
     fn next(&mut self) -> Option<Self::Item> {

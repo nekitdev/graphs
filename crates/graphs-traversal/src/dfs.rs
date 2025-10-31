@@ -69,4 +69,4 @@ impl<G: Visit + Neighbors> Walker<G> for Dfs<G::NodeId, G::Visitor> {
 
 pub type DfsOf<G> = Dfs<<G as Base>::NodeId, <G as Visit>::Visitor>;
 
-pub type DfsIter<'g, G> = Walk<'g, G, DfsOf<G>>;
+pub type DfsWalk<'g, G> = Walk<'g, G, DfsOf<G>>;

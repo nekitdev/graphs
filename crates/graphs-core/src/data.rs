@@ -1,6 +1,10 @@
 //! Traits for graphs that contain data.
 
-use crate::base::Base;
+use crate::{
+    base::Base,
+    items::{IdOf, ValueMutOf, ValueRefOf},
+    map_item,
+};
 
 /// Represents graphs that contain data.
 pub trait Data: Base {
@@ -28,6 +32,15 @@ pub trait DataRef: Data {
 
     /// Returns the edge value corresponding to the given identifier, if any.
     fn edge_value(&self, id: Self::EdgeId) -> Option<&Self::EdgeValue>;
+
+    fn value(&self, self_id: IdOf<Self>) -> Option<ValueRefOf<'_, Self>> {
+        map_item!(
+            self_id,
+            node_id => self.node_value(node_id),
+            edge_id => self.edge_value(edge_id),
+        )
+        .factor_none()
+    }
 }
 
 impl<G: DataRef + ?Sized> DataRef for &G {
@@ -57,14 +70,23 @@ pub trait DataMut: DataRef {
 
     /// Returns the mutable edge value corresponding to the given identifier, if any.
     fn edge_value_mut(&mut self, id: Self::EdgeId) -> Option<&mut Self::EdgeValue>;
+
+    fn value_mut(&mut self, self_id: IdOf<Self>) -> Option<ValueMutOf<'_, Self>> {
+        map_item!(
+            self_id,
+            node_id => self.node_value_mut(node_id),
+            edge_id => self.edge_value_mut(edge_id),
+        )
+        .factor_none()
+    }
 }
 
 impl<G: DataMut + ?Sized> DataMut for &mut G {
     fn node_value_mut(&mut self, id: Self::NodeId) -> Option<&mut Self::NodeValue> {
-        (**self).node_value_mut(id)
+        (*self).node_value_mut(id)
     }
 
     fn edge_value_mut(&mut self, id: Self::EdgeId) -> Option<&mut Self::EdgeValue> {
-        (**self).edge_value_mut(id)
+        (*self).edge_value_mut(id)
     }
 }

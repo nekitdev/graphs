@@ -1,0 +1,29 @@
+[package]
+name = "graphs-stable"
+version.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+description = "Stable graph data structure implementation."
+documentation = "https://docs.rs/graphs-stable"
+readme = "README.md"
+repository.workspace = true
+license.workspace = true
+keywords = ["graph", "data-structure"]
+
+[dependencies.graphs-core]
+workspace = true
+
+[dependencies.graphs-simple]
+workspace = true
+
+[dependencies.thiserror]
+workspace = true
+
+[features]
+default = []
+std = []
+alloc = []
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]

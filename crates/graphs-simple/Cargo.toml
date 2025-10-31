@@ -2,6 +2,7 @@
 name = "graphs-simple"
 version.workspace = true
 authors.workspace = true
+rust-version.workspace = true
 edition.workspace = true
 description = "Simple graph data structure implementation."
 documentation = "https://docs.rs/graphs-simple"
@@ -10,12 +11,8 @@ repository.workspace = true
 license.workspace = true
 keywords = ["graph", "data-structure"]
 
-[dependencies.cfg-if]
-workspace = true
-
 [dependencies.graphs-core]
-path = "../graphs-core"
-version = "0.2.0"
+workspace = true
 
 [dependencies.thiserror]
 workspace = true

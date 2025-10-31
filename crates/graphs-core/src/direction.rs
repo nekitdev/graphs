@@ -1,12 +1,16 @@
 //! Edge directions in graphs.
 
+pub const OUTGOING: u8 = 0;
+pub const INCOMING: u8 = 1;
+
 /// Represents edge directions, either *outgoing* or *incoming*.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
 pub enum Direction {
     /// *Outgoing* edge is directed *from* the context node.
-    Outgoing,
+    Outgoing = OUTGOING,
     /// *Incoming* edge is directed *to* the context node.
-    Incoming,
+    Incoming = INCOMING,
 }
 
 pub use Direction::{Incoming, Outgoing};
@@ -37,45 +41,29 @@ impl Direction {
     pub const COUNT: usize = 2;
 
     /// The array of all possible directions.
-    pub const ARRAY: [Self; Self::COUNT] = [Self::Outgoing, Self::Incoming];
+    pub const ALL: [Self; Self::COUNT] = [Self::Outgoing, Self::Incoming];
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct WithDirection<T> {
-    pub value: T,
+pub struct Directional<T> {
     pub direction: Direction,
+    pub value: T,
 }
 
-impl<T> WithDirection<T> {
-    pub const fn new(value: T, direction: Direction) -> Self {
-        Self { value, direction }
+impl<T> Directional<T> {
+    pub const fn new(direction: Direction, value: T) -> Self {
+        Self { direction, value }
     }
 
     pub const fn outgoing(value: T) -> Self {
-        Self::new(value, Outgoing)
+        Self::new(Outgoing, value)
     }
 
     pub const fn incoming(value: T) -> Self {
-        Self::new(value, Incoming)
+        Self::new(Incoming, value)
     }
 
-    pub fn from_parts((value, direction): (T, Direction)) -> Self {
-        Self::new(value, direction)
-    }
-
-    pub fn into_parts(self) -> (T, Direction) {
-        (self.value, self.direction)
-    }
-}
-
-impl<T> From<(T, Direction)> for WithDirection<T> {
-    fn from(parts: (T, Direction)) -> Self {
-        Self::from_parts(parts)
-    }
-}
-
-impl<T> From<WithDirection<T>> for (T, Direction) {
-    fn from(with_direction: WithDirection<T>) -> Self {
-        with_direction.into_parts()
+    pub const fn reverse(&mut self) {
+        self.direction = self.direction.reversed();
     }
 }

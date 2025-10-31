@@ -4,23 +4,16 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
-#[cfg(feature = "alloc")]
+#[cfg(not(feature = "std"))]
 extern crate alloc;
 
-use cfg_if::cfg_if;
+pub mod digraph;
+pub mod errors;
+pub mod generic;
+pub mod graph;
 
-pub(crate) mod at_most_two;
+pub use digraph::{DiGraph, LoopedDiGraph, MultiDiGraph, PseudoDiGraph, SimpleDiGraph};
+pub use generic::Generic;
+pub use graph::{Graph, LoopedGraph, MultiGraph, PseudoGraph, SimpleGraph};
 
-cfg_if! {
-    if #[cfg(any(feature = "std", feature = "alloc"))] {
-        pub(crate) mod internal;
-
-        pub mod graph;
-
-        pub use graph::{DiGraph, Graph, UnGraph};
-    }
-}
-
-pub mod error;
-
-pub(crate) mod next;
+pub(crate) mod internal;

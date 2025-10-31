@@ -76,4 +76,4 @@ impl<G: Visit + Neighbors> Walker<G> for DfsPostOrder<G::NodeId, G::Visitor> {
 
 pub type DfsPostOrderOf<G> = DfsPostOrder<<G as Base>::NodeId, <G as Visit>::Visitor>;
 
-pub type DfsPostOrderIter<'g, G> = Walk<'g, G, DfsPostOrderOf<G>>;
+pub type DfsPostOrderWalk<'g, G> = Walk<'g, G, DfsPostOrderOf<G>>;

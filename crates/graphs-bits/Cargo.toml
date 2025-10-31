@@ -1,0 +1,34 @@
+[package]
+name = "graphs-bits"
+version.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+description = "Manipulating bits."
+documentation = "https://docs.rs/graphs-bits"
+readme = "README.md"
+repository.workspace = true
+license.workspace = true
+keywords = ["bit", "data-structure"]
+
+[dependencies.graphs-core]
+workspace = true
+
+[dependencies.serde]
+workspace = true
+features = ["derive"]
+optional = true
+
+[dependencies.thiserror]
+workspace = true
+
+[features]
+# TODO: add "std" here
+default = ["alloc"]
+serde = ["dep:serde"]
+std = ["serde?/std"]
+alloc = ["serde?/alloc"]
+
+[package.metadata.docs.rs]
+features = ["serde"]
+rustdoc-args = ["--cfg", "docsrs"]

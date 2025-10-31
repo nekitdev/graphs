@@ -6,10 +6,10 @@ use graphs_core::{
 };
 
 use crate::{
-    bfs::{Bfs, BfsIter, BfsOf},
-    dfs::{Dfs, DfsIter, DfsOf},
-    dfs_post_order::{DfsPostOrder, DfsPostOrderIter, DfsPostOrderOf},
-    topological::{Topological, TopologicalIter, TopologicalOf},
+    bfs::{Bfs, BfsOf, BfsWalk},
+    dfs::{Dfs, DfsOf, DfsWalk},
+    dfs_post_order::{DfsPostOrder, DfsPostOrderOf, DfsPostOrderWalk},
+    topological::{Topological, TopologicalOf, TopologicalWalk},
 };
 
 pub trait Traverse: Visit {
@@ -28,21 +28,21 @@ pub trait Traverse: Visit {
 
 impl<G: Visit + ?Sized> Traverse for G {}
 
-pub trait TraverseIter: Traverse + Neighbors + Sized {
-    fn dfs_iter(&self, start: Self::NodeId) -> DfsIter<'_, Self> {
+pub trait TraverseWalk: Traverse + Neighbors + Sized {
+    fn dfs_walk(&self, start: Self::NodeId) -> DfsWalk<'_, Self> {
         self.dfs(start).into_walk(self)
     }
 
-    fn dfs_post_order_iter(&self, start: Self::NodeId) -> DfsPostOrderIter<'_, Self> {
+    fn dfs_post_order_walk(&self, start: Self::NodeId) -> DfsPostOrderWalk<'_, Self> {
         self.dfs_post_order(start).into_walk(self)
     }
 
-    fn bfs_iter(&self, start: Self::NodeId) -> BfsIter<'_, Self> {
+    fn bfs_walk(&self, start: Self::NodeId) -> BfsWalk<'_, Self> {
         self.bfs(start).into_walk(self)
     }
 }
 
-impl<G: Traverse + Neighbors> TraverseIter for G {}
+impl<G: Traverse + Neighbors> TraverseWalk for G {}
 
 pub trait TraverseTopological: Visit + NodeIdentifiers + DirectedNeighbors {
     fn topological(&self) -> TopologicalOf<Self> {
@@ -52,10 +52,10 @@ pub trait TraverseTopological: Visit + NodeIdentifiers + DirectedNeighbors {
 
 impl<G: Visit + NodeIdentifiers + DirectedNeighbors + ?Sized> TraverseTopological for G {}
 
-pub trait TraverseTopologicalIter: TraverseTopological + Sized {
-    fn topological_iter(&self) -> TopologicalIter<'_, Self> {
+pub trait TraverseTopologicalWalk: TraverseTopological + Sized {
+    fn topological_walk(&self) -> TopologicalWalk<'_, Self> {
         self.topological().into_walk(self)
     }
 }
 
-impl<G: TraverseTopological> TraverseTopologicalIter for G {}
+impl<G: TraverseTopological> TraverseTopologicalWalk for G {}

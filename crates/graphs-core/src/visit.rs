@@ -1,7 +1,5 @@
 //! Graph visiting traits and visitors.
 
-use cfg_if::cfg_if;
-
 use crate::{
     base::Base,
     id::{DefaultNodeId, NodeTypeId},
@@ -10,6 +8,8 @@ use crate::{
 /// Represents visitors that can traverse graphs.
 ///
 /// Visitors are generic over the node [`Id`] type that they can work with.
+///
+/// [`Id`]: crate::id::Id
 pub trait Visitor<N: NodeTypeId = DefaultNodeId> {
     /// Visits the node with the given ID.
     ///
@@ -23,6 +23,20 @@ pub trait Visitor<N: NodeTypeId = DefaultNodeId> {
     ///
     /// Returns [`true`] if the node was visited previously, otherwise returns [`false`].
     fn unvisit(&mut self, node: N) -> bool;
+}
+
+impl<N: NodeTypeId, V: Visitor<N>> Visitor<N> for &mut V {
+    fn visit(&mut self, node: N) -> bool {
+        (*self).visit(node)
+    }
+
+    fn was_visited(&self, node: N) -> bool {
+        (**self).was_visited(node)
+    }
+
+    fn unvisit(&mut self, node: N) -> bool {
+        (*self).unvisit(node)
+    }
 }
 
 /// Represents graphs that can be visited.
@@ -63,24 +77,27 @@ impl<G: Visit + ?Sized> Visit for &mut G {
     }
 }
 
-cfg_if! {
-    if #[cfg(feature = "std")] {
-        use core::hash::BuildHasher;
+#[cfg(feature = "std")]
+mod hash {
+    use core::hash::BuildHasher;
 
-        use std::collections::HashSet;
+    use std::collections::HashSet;
 
-        impl<N: NodeTypeId, S: BuildHasher> Visitor<N> for HashSet<N, S> {
-            fn visit(&mut self, node: N) -> bool {
-                self.insert(node)
-            }
+    use crate::id::NodeTypeId;
 
-            fn was_visited(&self, node: N) -> bool {
-                self.contains(&node)
-            }
+    use super::Visitor;
 
-            fn unvisit(&mut self, node: N) -> bool {
-                self.remove(&node)
-            }
+    impl<N: NodeTypeId, S: BuildHasher> Visitor<N> for HashSet<N, S> {
+        fn visit(&mut self, node: N) -> bool {
+            self.insert(node)
+        }
+
+        fn was_visited(&self, node: N) -> bool {
+            self.contains(&node)
+        }
+
+        fn unvisit(&mut self, node: N) -> bool {
+            self.remove(&node)
         }
     }
 }

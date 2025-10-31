@@ -46,18 +46,22 @@ impl<B> Control<B> {
     }
 }
 
-pub trait Flow<B> {
+pub trait Flow {
+    type Value;
+
     fn continuing() -> Self;
-    fn breaking(value: B) -> Self;
-    fn branch(self) -> Control<B>;
+    fn breaking(value: Self::Value) -> Self;
+    fn branch(self) -> Control<Self::Value>;
 }
 
-impl<B> Flow<B> for Control<B> {
+impl<T> Flow for Control<T> {
+    type Value = T;
+
     fn continuing() -> Self {
         Self::Continue
     }
 
-    fn breaking(value: B) -> Self {
+    fn breaking(value: Self::Value) -> Self {
         Self::Break(value)
     }
 
@@ -66,31 +70,27 @@ impl<B> Flow<B> for Control<B> {
     }
 }
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-// pub enum Never {}
+impl<T> Flow for Option<T> {
+    type Value = T;
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-// pub struct Continuing;
+    fn continuing() -> Self {
+        None
+    }
 
-// impl<B> Flow<B> for Continuing {
-//     fn continuing() -> Self {
-//         Self
-//     }
+    fn breaking(value: Self::Value) -> Self {
+        Some(value)
+    }
 
-//     fn breaking(value: B) -> Self {
-//         Self
-//     }
-
-//     fn branch(self) -> Control<B> {
-//         Control::Continue
-//     }
-// }
+    fn branch(self) -> Control<Self::Value> {
+        self.map(Break).unwrap_or_default()
+    }
+}
 
 #[macro_export]
 macro_rules! control_flow {
     ($flow: expr, {
         continue => $continue: expr,
-        break $value: ident => $break: expr,
+        break $value: pat => $break: expr,
         prune => $prune: expr $(,)?
     }) => {
         match $crate::control::Flow::branch($flow) {
@@ -101,7 +101,7 @@ macro_rules! control_flow {
     };
 
     ($flow: expr, {
-        break $value: ident => $break: expr,
+        break $value: pat => $break: expr,
         prune => $prune: expr $(,)?
     }) => {
         $crate::control_flow!($flow, {
@@ -143,7 +143,7 @@ macro_rules! control_flow {
     };
 
     ($flow: expr, {
-        break $value: ident => $break: expr $(,)?
+        break $value: pat => $break: expr $(,)?
     }) => {
         $crate::control_flow!($flow, {
             continue => {},

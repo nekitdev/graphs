@@ -4,18 +4,18 @@ pub enum Class {
     Source,
     Sink,
     #[default]
-    Regular,
+    General,
 }
 
-pub use Class::{Isolated, Regular, Sink, Source};
+pub use Class::{General, Isolated, Sink, Source};
 
 impl Class {
     pub const fn compute(outgoing: bool, incoming: bool) -> Self {
         match (outgoing, incoming) {
-            (false, false) => Isolated,
-            (false, true) => Sink,
-            (true, false) => Source,
-            (true, true) => Regular,
+            (false, false) => Self::Isolated,
+            (false, true) => Self::Sink,
+            (true, false) => Self::Source,
+            (true, true) => Self::General,
         }
     }
 
@@ -31,8 +31,8 @@ impl Class {
         matches!(self, Self::Sink)
     }
 
-    pub const fn is_regular(self) -> bool {
-        matches!(self, Self::Regular)
+    pub const fn is_general(self) -> bool {
+        matches!(self, Self::General)
     }
 }
 

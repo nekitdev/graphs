@@ -37,7 +37,7 @@ impl<G: EdgeCount + ?Sized> EdgeCount for &mut G {
 }
 
 /// Combines node and edge counts together.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Counts {
     /// The number of nodes.
     pub nodes: usize,
@@ -46,10 +46,29 @@ pub struct Counts {
     pub edges: usize,
 }
 
+impl Default for Counts {
+    fn default() -> Self {
+        Self::null()
+    }
+}
+
 impl Counts {
     /// Constructs [`Self`].
     pub const fn new(nodes: usize, edges: usize) -> Self {
         Self { nodes, edges }
+    }
+
+    pub const fn null() -> Self {
+        Self::new(0, 0)
+    }
+
+    pub const fn reset(&mut self) {
+        self.nodes = 0;
+        self.edges = 0;
+    }
+
+    pub const fn is_null(&self) -> bool {
+        self.nodes == 0 && self.edges == 0
     }
 }
 
@@ -61,6 +80,11 @@ pub trait Count: NodeCount + EdgeCount {
     /// Returns the [`Counts`] of this graph.
     fn count(&self) -> Counts {
         Counts::new(self.node_count(), self.edge_count())
+    }
+
+    /// Checks whether the graph has no nodes and no edges, meaning it is the *null* graph.
+    fn is_null(&self) -> bool {
+        self.count().is_null()
     }
 }
 

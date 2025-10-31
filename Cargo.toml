@@ -5,79 +5,128 @@ resolver = "3"
 [workspace.package]
 version = "0.2.0"
 authors = ["nekitdev <nekit@nekit.dev>"]
+rust-version = "1.90"
 edition = "2024"
-repository = "https://github.com/nekitdev/graphs-std"
+repository = "https://github.com/nekitdev/graphs"
 license = "MIT"
 
-[workspace.dependencies.cfg-if]
-version = "1.0.0"
-
-[workspace.dependencies.thiserror]
-version = "2.0.12"
+[workspace.dependencies.indexmap]
+version = "2.11.0"
 default-features = false
 
-[workspace.dependencies.indexmap]
-version = "2.9.0"
+[workspace.dependencies.serde]
+version = "1.0.219"
+default-features = false
+
+[workspace.dependencies.thiserror]
+version = "2.0.16"
+default-features = false
+
+[workspace.dependencies.graphs-core]
+path = "crates/graphs-core"
+version = "0.2.0"
+default-features = false
+
+[workspace.dependencies.graphs-algorithms]
+path = "crates/graphs-algorithms"
+version = "0.2.0"
+default-features = false
+
+[workspace.dependencies.graphs-bits]
+path = "crates/graphs-bits"
+version = "0.2.0"
+default-features = false
+
+[workspace.dependencies.graphs-map]
+path = "crates/graphs-map"
+version = "0.2.0"
+default-features = false
+
+[workspace.dependencies.graphs-simple]
+path = "crates/graphs-simple"
+version = "0.2.0"
+default-features = false
+
+[workspace.dependencies.graphs-stable]
+path = "crates/graphs-stable"
+version = "0.2.0"
+default-features = false
+
+[workspace.dependencies.graphs-traversal]
+path = "crates/graphs-traversal"
+version = "0.2.0"
+default-features = false
+
+[workspace.dependencies.graphs-union-find]
+path = "crates/graphs-union-find"
+version = "0.2.0"
 default-features = false
 
 [package]
 name = "graphs"
 version.workspace = true
 authors.workspace = true
+rust-version.workspace = true
 edition.workspace = true
 description = "Graph data structures and algorithms."
-documentation = "https://docs.rs/graphs-std"
+documentation = "https://docs.rs/graphs"
 readme = "README.md"
 repository.workspace = true
 license.workspace = true
 keywords = ["graph", "algorithm", "data-structure"]
 categories = ["algorithms", "data-structures"]
 
-[dependencies.cfg-if]
+[dependencies.graphs-core]
 workspace = true
 
-[dependencies.graphs-core]
-path = "crates/graphs-core"
-version = "0.2.0"
-default-features = false
-
 [dependencies.graphs-algorithms]
-path = "crates/graphs-algorithms"
-version = "0.2.0"
+workspace = true
 optional = true
-default-features = false
 
-[dependencies.graphs-map]
-path = "crates/graphs-map"
-version = "0.2.0"
+[dependencies.graphs-bits]
+workspace = true
 optional = true
-default-features = false
 
 [dependencies.graphs-simple]
-path = "crates/graphs-simple"
-version = "0.2.0"
+workspace = true
 optional = true
-default-features = false
+
+[dependencies.graphs-stable]
+workspace = true
+optional = true
+
+[dependencies.graphs-map]
+workspace = true
+optional = true
 
 [dependencies.graphs-traversal]
-path = "crates/graphs-traversal"
-version = "0.2.0"
+workspace = true
 optional = true
-default-features = false
+
+[dependencies.graphs-union-find]
+workspace = true
+optional = true
 
 [features]
 # TODO: add "std" here
-default = ["map", "traversal"]
+default = ["simple"]
 std = [
     "graphs-algorithms?/std",
+    "graphs-bits?/std",
     "graphs-simple?/std",
+    "graphs-stable?/std",
     "graphs-map?/std",
     "graphs-traversal?/std",
+    "graphs-union-find?/std"
 ]
-algorithms = ["graphs-algorithms"]
-simple = ["graphs-simple"]
-map = ["graphs-map"]
-traversal = ["graphs-traversal"]
+algorithms = ["dep:graphs-algorithms"]
+bits = ["dep:graphs-bits"]
+simple = ["dep:graphs-simple"]
+stable = ["dep:graphs-stable"]
+map = ["dep:graphs-map"]
+traversal = ["dep:graphs-traversal"]
+union-find = ["dep:graphs-union-find"]
 
 [package.metadata.docs.rs]
+features = ["algorithms", "bits", "simple", "stable", "map", "traversal", "union-find"]
 rustdoc-args = ["--cfg", "docsrs"]

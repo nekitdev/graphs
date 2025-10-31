@@ -1,223 +1,477 @@
-//! Simple graph implementation.
-
-use core::marker::PhantomData;
-
 use graphs_core::{
-    base::Base,
-    build::Build,
-    capacity::{Capacities, EdgeCapacity, NodeCapacity},
-    count::{Counts, EdgeCount, NodeCount},
-    create::Create,
-    data::{Data, DataMut, DataRef},
-    direction::{Direction, Incoming, Outgoing},
-    id::{DefaultId, EdgeId, NodeId},
-    kind::{Directed, Kind, Kinded, Undirected},
+    keys::DefaultUntypedIndex,
+    kinds::Undirected,
+    loops::{Allow, DefaultLoop, Forbid},
+    types::{DefaultType, Multiple, Single},
 };
 
-use crate::{
-    at_most_two::{AtMostTwo, AtMostTwoOutput},
-    error::{EdgeError, NodeError},
-    internal::{Edge, Edges, Node, Nodes},
-};
+use crate::generic::Generic;
 
-/// Represents simple graphs.
-pub struct Graph<N, E, K: Kind, I: IndexId = DefaultId> {
-    nodes: Nodes<N, I>,
-    edges: Edges<E, I>,
-    kind: PhantomData<K>,
-}
+/// Represents undirected graphs.
+pub type Graph<N, E, I = DefaultUntypedIndex, T = DefaultType, L = DefaultLoop> =
+    Generic<N, E, Undirected, I, T, L>;
 
-/// Represents the parts of the graph, namely nodes and edges.
-pub type Parts<N, E, I = DefaultId> = (Nodes<N, I>, Edges<E, I>);
+pub type SimpleGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Single, Forbid>;
+pub type LoopedGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Single, Allow>;
+pub type MultiGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Multiple, Forbid>;
+pub type PseudoGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Multiple, Allow>;
 
-/// Represents simple directed graphs.
-pub type DiGraph<N, E, I = DefaultId> = Graph<N, E, Directed, I>;
+#[allow(dead_code)]
+mod assert {
+    use graphs_core::{
+        base::{assert_looped, assert_multi, assert_pseudo, assert_simple, assert_undirected},
+        keys::UntypedIndex,
+        loops::Loop,
+        types::Type,
+    };
 
-/// Represents simple undirected graphs.
-pub type UnGraph<N, E, I = DefaultId> = Graph<N, E, Undirected, I>;
+    use super::{Graph, LoopedGraph, MultiGraph, PseudoGraph, SimpleGraph};
 
-pub type DefaultDiGraph<N, E> = DiGraph<N, E, DefaultId>;
-pub type DefaultUnGraph<N, E> = UnGraph<N, E, DefaultId>;
-
-impl<N, E, K: Kind, I: IndexId> Kinded for Graph<N, E, K, I> {
-    type Kind = K;
-}
-
-impl<N, E, K: Kind, I: IndexId> Graph<N, E, K, I> {
-    /// Constructs [`Self`].
-    pub const fn new() -> Self {
-        Self {
-            nodes: Nodes::new(),
-            edges: Edges::new(),
-            kind: PhantomData,
-        }
+    const fn assert_on_base<N, E, I: UntypedIndex, T: Type, L: Loop>() {
+        assert_undirected::<Graph<N, E, I, T, L>>();
     }
 
-    /// Returns the node count of the graph.
-    pub const fn node_count(&self) -> usize {
-        self.nodes.len()
+    const fn assert_on_simple<N, E, I: UntypedIndex>() {
+        assert_simple::<SimpleGraph<N, E, I>>();
     }
 
-    /// Returns the edge count of the graph.
-    pub const fn edge_count(&self) -> usize {
-        self.edges.len()
+    const fn assert_on_looped<N, E, I: UntypedIndex>() {
+        assert_looped::<LoopedGraph<N, E, I>>();
     }
 
-    pub const fn count(&self) -> Counts {
-        Counts::new(self.node_count(), self.edge_count())
+    const fn assert_on_multi<N, E, I: UntypedIndex>() {
+        assert_multi::<MultiGraph<N, E, I>>();
     }
 
-    /// Returns the node capacity of the graph.
-    pub const fn node_capacity(&self) -> usize {
-        self.nodes.capacity()
-    }
-
-    /// Returns the edge capacity of the graph.
-    pub const fn edge_capacity(&self) -> usize {
-        self.edges.capacity()
-    }
-
-    pub const fn capacity(&self) -> Capacities {
-        Capacities::new(self.node_capacity(), self.edge_capacity())
-    }
-
-    /// Returns whether the graph is directed.
-    pub const fn is_directed(&self) -> bool {
-        K::IS_DIRECTED
+    const fn assert_on_pseudo<N, E, I: UntypedIndex>() {
+        assert_pseudo::<PseudoGraph<N, E, I>>();
     }
 }
 
-impl<N, E, K: Kind, I: IndexId> Base for Graph<N, E, K, I> {
-    type NodeId = NodeId<I>;
-    type EdgeId = EdgeId<I>;
-}
+// use core::marker::PhantomData;
 
-impl<N, E, K: Kind, I: IndexId> Data for Graph<N, E, K, I> {
-    type NodeValue = N;
-    type EdgeValue = E;
-}
+// use graphs_core::{
+//     base::Base,
+//     build::Build,
+//     capacity::{Capacities, EdgeCapacity, NodeCapacity},
+//     clear::{Clear, ClearEdges},
+//     connection::Connection,
+//     count::{Counts, EdgeCount, NodeCount},
+//     create::Create,
+//     data::{Data, DataMut, DataRef},
+//     direction::Direction::{self, Outgoing},
+//     find::{Find, FindDirected},
+//     id::{Id, NodeId},
+//     index::{DefaultUntypedIndex, EdgeIndex, Index, NodeIndex, UntypedIndex},
+//     indexed::{EdgeIndexed, NodeIndexed},
+//     kinds::{DefaultKind, Directed, Kind, Undirected},
+//     loops::{Allow, DefaultLoop, Forbid, Loop},
+//     recoverable::RecoverableResult,
+//     recoverable_result,
+//     reverse::Reverse,
+//     specs::Specs,
+//     types::{DefaultType, Multiple, Single, Type},
+// };
+// use thiserror::Error;
 
-impl<N, E, K: Kind, I: IndexId> NodeCount for Graph<N, E, K, I> {
-    fn node_count(&self) -> usize {
-        self.node_count()
-    }
-}
+// use crate::internal::{Edge, Edges, InternalConnection, Node, Nodes};
 
-impl<N, E, K: Kind, I: IndexId> EdgeCount for Graph<N, E, K, I> {
-    fn edge_count(&self) -> usize {
-        self.edge_count()
-    }
-}
+// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Error)]
+// #[error("node limit reached")]
+// pub struct NodeError;
 
-impl<N, E, K: Kind, I: IndexId> NodeCapacity for Graph<N, E, K, I> {
-    fn node_capacity(&self) -> usize {
-        self.node_capacity()
-    }
-}
+// impl NodeError {
+//     /// Constructs [`Self`].
+//     pub const fn new() -> Self {
+//         Self
+//     }
+// }
 
-impl<N, E, K: Kind, I: IndexId> EdgeCapacity for Graph<N, E, K, I> {
-    fn edge_capacity(&self) -> usize {
-        self.edge_capacity()
-    }
-}
+// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Error)]
+// #[error("edge limit reached")]
+// pub struct LimitError;
 
-impl<N, E, K: Kind, I: IndexId> Create for Graph<N, E, K, I> {
-    fn new() -> Self {
-        Self::new()
-    }
+// impl LimitError {
+//     /// Constructs [`Self`].
+//     pub const fn new() -> Self {
+//         Self
+//     }
+// }
 
-    fn with_capacity(capacities: Capacities) -> Self {
-        Self {
-            nodes: Nodes::with_capacity(capacities.nodes),
-            edges: Edges::with_capacity(capacities.edges),
-            kind: PhantomData,
-        }
-    }
-}
+// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Error)]
+// #[error("node {index} is missing")]
+// pub struct MissingError<I: UntypedIndex = DefaultUntypedIndex> {
+//     pub index: NodeIndex<I>,
+// }
 
-impl<N, E, K: Kind, I: IndexId> Build for Graph<N, E, K, I> {
-    type NodeError = NodeError;
-    type EdgeError = EdgeError;
+// impl<I: UntypedIndex> MissingError<I> {
+//     /// Constructs [`Self`].
+//     pub const fn new(index: NodeIndex<I>) -> Self {
+//         Self { index }
+//     }
+// }
 
-    fn try_add_node(&mut self, value: Self::NodeValue) -> Result<Self::NodeId, Self::NodeError> {
-        todo!()
-    }
+// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Error)]
+// #[error("loop {connection} is forbidden")]
+// pub struct LoopError<I: UntypedIndex = DefaultUntypedIndex> {
+//     pub connection: Connection<NodeIndex<I>>,
+// }
 
-    fn try_add_edge(
-        &mut self,
-        source: Self::NodeId,
-        target: Self::NodeId,
-        value: Self::EdgeValue,
-    ) -> Result<Self::EdgeId, Self::EdgeError> {
-        todo!()
-    }
-}
+// impl<I: UntypedIndex> LoopError<I> {
+//     /// Constructs [`Self`].
+//     pub const fn new(connection: Connection<NodeIndex<I>>) -> Self {
+//         Self { connection }
+//     }
+// }
 
-impl<N, E, K: Kind, I: IndexId> DataRef for Graph<N, E, K, I> {
-    fn node_value(&self, id: Self::NodeId) -> Option<&Self::NodeValue> {
-        self.node_at(id).map(|node| node.get())
-    }
+// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Error)]
+// #[error("edge {connection} already exists")]
+// pub struct MultipleError<I: UntypedIndex = DefaultUntypedIndex> {
+//     pub connection: Connection<NodeIndex<I>>,
+// }
 
-    fn edge_value(&self, id: Self::EdgeId) -> Option<&Self::EdgeValue> {
-        self.edge_at(id).map(|edge| edge.get())
-    }
-}
+// impl<I: UntypedIndex> MultipleError<I> {
+//     /// Constructs [`Self`].
+//     pub const fn new(connection: Connection<NodeIndex<I>>) -> Self {
+//         Self { connection }
+//     }
+// }
 
-impl<N, E, K: Kind, I: IndexId> DataMut for Graph<N, E, K, I> {
-    fn node_value_mut(&mut self, id: Self::NodeId) -> Option<&mut Self::NodeValue> {
-        self.node_at_mut(id).map(|node| node.get_mut())
-    }
+// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Error)]
+// #[error(transparent)]
+// pub enum EdgeError<I: UntypedIndex = DefaultUntypedIndex> {
+//     Limit(#[from] LimitError),
+//     Missing(#[from] MissingError<I>),
+//     Loop(#[from] LoopError<I>),
+//     Multiple(#[from] MultipleError<I>),
+// }
 
-    fn edge_value_mut(&mut self, id: Self::EdgeId) -> Option<&mut Self::EdgeValue> {
-        self.edge_at_mut(id).map(|edge| edge.get_mut())
-    }
-}
+// impl<I: UntypedIndex> EdgeError<I> {
+//     pub const fn limit() -> Self {
+//         Self::Limit(LimitError::new())
+//     }
 
-impl<N, E, I: IndexId> DiGraph<N, E, I> {
-    /// Constructs directed [`Self`].
-    pub const fn directed() -> Self {
-        Self::new()
-    }
-}
+//     pub const fn missing(index: NodeIndex<I>) -> Self {
+//         Self::Missing(MissingError::new(index))
+//     }
 
-impl<N, E, I: IndexId> UnGraph<N, E, I> {
-    /// Constructs undirected [`Self`].
-    pub const fn undirected() -> Self {
-        Self::new()
-    }
-}
+//     pub const fn self_loop(connection: Connection<NodeIndex<I>>) -> Self {
+//         Self::Loop(LoopError::new(connection))
+//     }
 
-impl<N, E, K: Kind, I: IndexId> Default for Graph<N, E, K, I> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+//     pub const fn multiple(connection: Connection<NodeIndex<I>>) -> Self {
+//         Self::Multiple(MultipleError::new(connection))
+//     }
+// }
 
-impl<N, E, K: Kind, I: IndexId> Graph<N, E, K, I> {
-    fn at_most_two(
-        &mut self,
-        source: NodeId<I>,
-        target: NodeId<I>,
-    ) -> AtMostTwoOutput<&mut Node<N, I>> {
-        self.nodes.at_most_two(source.index(), target.index())
-    }
+// /// Represents simple graphs.
+// pub struct Generic<
+//     N,
+//     E,
+//     K: Kind = DefaultKind,
+//     I: UntypedIndex = DefaultUntypedIndex,
+//     T: Type = DefaultType,
+//     L: Loop = DefaultLoop,
+// > {
+//     nodes: Nodes<N, I>,
+//     edges: Edges<E, I>,
+//     specs: PhantomData<Specs<K, T, L>>,
+// }
 
-    fn node_at(&self, index: NodeId<I>) -> Option<&Node<N, I>> {
-        self.nodes.get(index.index())
-    }
+// /// Represents the parts of the graph, namely nodes and edges.
+// pub type Parts<N, E, I = DefaultUntypedIndex> = (Nodes<N, I>, Edges<E, I>);
 
-    fn node_at_mut(&mut self, index: NodeId<I>) -> Option<&mut Node<N, I>> {
-        self.nodes.get_mut(index.index())
-    }
+// pub type Graph<N, E, I = DefaultUntypedIndex, T = DefaultType, L = DefaultLoop> =
+//     Generic<N, E, Undirected, I, T, L>;
 
-    fn edge_at(&self, index: NodeId<I>) -> Option<&Edge<E, I>> {
-        self.edges.get(index.index())
-    }
+// pub type DiGraph<N, E, I = DefaultUntypedIndex, T = DefaultType, L = DefaultLoop> =
+//     Generic<N, E, Directed, I, T, L>;
 
-    fn edge_at_mut(&mut self, index: NodeId<I>) -> Option<&mut Edge<E, I>> {
-        self.edges.get_mut(index.index())
-    }
-}
+// pub type SimpleGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Single, Forbid>;
+// pub type LoopedGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Single, Allow>;
+// pub type MultiGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Multiple, Forbid>;
+// pub type PseudoGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Multiple, Allow>;
+
+// pub type SimpleDiGraph<N, E, I = DefaultUntypedIndex> = DiGraph<N, E, I, Single, Forbid>;
+// pub type LoopedDiGraph<N, E, I = DefaultUntypedIndex> = DiGraph<N, E, I, Single, Allow>;
+// pub type MultiDiGraph<N, E, I = DefaultUntypedIndex> = DiGraph<N, E, I, Multiple, Forbid>;
+// pub type PseudoDiGraph<N, E, I = DefaultUntypedIndex> = DiGraph<N, E, I, Multiple, Allow>;
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Base for Generic<N, E, K, I, T, L> {
+//     type NodeId = NodeIndex<I>;
+//     type EdgeId = EdgeIndex<I>;
+
+//     type Kind = K;
+//     type Loop = L;
+//     type Type = T;
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Generic<N, E, K, I, T, L> {
+//     /// Constructs [`Self`].
+//     pub const fn new() -> Self {
+//         Self {
+//             nodes: Nodes::new(),
+//             edges: Edges::new(),
+//             specs: PhantomData,
+//         }
+//     }
+
+//     /// Returns the node count of the graph.
+//     pub const fn node_count(&self) -> usize {
+//         self.nodes.len()
+//     }
+
+//     /// Returns the edge count of the graph.
+//     pub const fn edge_count(&self) -> usize {
+//         self.edges.len()
+//     }
+
+//     pub const fn count(&self) -> Counts {
+//         Counts::new(self.node_count(), self.edge_count())
+//     }
+
+//     /// Returns the node capacity of the graph.
+//     pub const fn node_capacity(&self) -> usize {
+//         self.nodes.capacity()
+//     }
+
+//     /// Returns the edge capacity of the graph.
+//     pub const fn edge_capacity(&self) -> usize {
+//         self.edges.capacity()
+//     }
+
+//     pub const fn capacity(&self) -> Capacities {
+//         Capacities::new(self.node_capacity(), self.edge_capacity())
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Data for Generic<N, E, K, I, T, L> {
+//     type NodeValue = N;
+//     type EdgeValue = E;
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> NodeCount for Generic<N, E, K, I, T, L> {
+//     fn node_count(&self) -> usize {
+//         self.node_count()
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> EdgeCount for Generic<N, E, K, I, T, L> {
+//     fn edge_count(&self) -> usize {
+//         self.edge_count()
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> NodeCapacity for Generic<N, E, K, I, T, L> {
+//     fn node_capacity(&self) -> usize {
+//         self.node_capacity()
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> EdgeCapacity for Generic<N, E, K, I, T, L> {
+//     fn edge_capacity(&self) -> usize {
+//         self.edge_capacity()
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> NodeIndexed for Generic<N, E, K, I, T, L> {
+//     fn node_bound(&self) -> usize {
+//         self.node_count()
+//     }
+
+//     fn node_index(&self, id: Self::NodeId) -> usize {
+//         id.index()
+//     }
+
+//     fn node_id(&self, index: usize) -> Self::NodeId {
+//         Self::NodeId::of(index)
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> EdgeIndexed for Generic<N, E, K, I, T, L> {
+//     fn edge_bound(&self) -> usize {
+//         self.edge_count()
+//     }
+
+//     fn edge_index(&self, id: Self::EdgeId) -> usize {
+//         id.index()
+//     }
+
+//     fn edge_id(&self, index: usize) -> Self::EdgeId {
+//         Self::EdgeId::of(index)
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Create for Generic<N, E, K, I, T, L> {
+//     fn empty() -> Self {
+//         Self::new()
+//     }
+
+//     fn with_capacity(capacities: Capacities) -> Self {
+//         Self {
+//             nodes: Nodes::with_capacity(capacities.nodes),
+//             edges: Edges::with_capacity(capacities.edges),
+//             specs: PhantomData,
+//         }
+//     }
+// }
+
+// impl<N, E, I: UntypedIndex> Build for SimpleGraph<N, E, I> {
+//     type NodeError = NodeError;
+//     type EdgeError = EdgeError<I>;
+
+//     fn add_node(
+//         &mut self,
+//         value: Self::NodeValue,
+//     ) -> RecoverableResult<Self::NodeId, Self::NodeError, Self::NodeValue> {
+//         let index = NodeIndex::of(self.node_count());
+
+//         if index.is_limit() {
+//             return recoverable_result!(Self::NodeError::new(), value);
+//         }
+
+//         let node = Node::new(value);
+
+//         self.nodes.push(node);
+
+//         Ok(index)
+//     }
+
+//     fn add_edge(
+//         &mut self,
+//         connection: Connection<Self::NodeId>,
+//         value: Self::EdgeValue,
+//     ) -> RecoverableResult<Self::EdgeId, Self::EdgeError, Self::EdgeValue> {
+//         todo!()
+//     }
+// }
+
+// impl<N, E, I: UntypedIndex> Build for LoopedGraph<N, E, I> {}
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Build for Graph<N, E, K, I, T, L> {
+//     type NodeError = NodeError;
+//     type EdgeError = EdgeError<I>;
+
+//     fn add_node(
+//         &mut self,
+//         value: Self::NodeValue,
+//     ) -> RecoverableResult<Self::NodeId, Self::NodeError, Self::NodeValue> {
+//         let index = NodeIndex::of(self.node_count());
+
+//         if index.is_limit() {
+//             return recoverable_result!(Self::NodeError::new(), value);
+//         }
+
+//         let node = Node::new(value);
+
+//         self.nodes.push(node);
+
+//         Ok(index)
+//     }
+
+//     fn add_edge(
+//         &mut self,
+//         connection: Connection<Self::NodeId>,
+//         value: Self::EdgeValue,
+//     ) -> RecoverableResult<Self::Output, Self::EdgeError, Self::EdgeValue> {
+//         if self.is_forbid() && connection.is_loop() {
+//             return recoverable_result!(Self::EdgeError::self_loop(connection), value);
+//         }
+
+//         if self.is_single() {
+//             todo!() // TODO: handle multiple edges
+//         }
+
+//         let index = EdgeIndex::of(self.edge_count());
+
+//         if index.is_limit() {
+//             return recoverable_result!(Self::EdgeError::limit(), value);
+//         }
+
+//         Ok(index)
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> DataRef for Generic<N, E, K, I, T, L> {
+//     fn node_value(&self, id: Self::NodeId) -> Option<&Self::NodeValue> {
+//         self.node(id).map(|node| node.get())
+//     }
+
+//     fn edge_value(&self, id: Self::EdgeId) -> Option<&Self::EdgeValue> {
+//         self.edge(id).map(|edge| edge.get())
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> DataMut for Generic<N, E, K, I, T, L> {
+//     fn node_value_mut(&mut self, id: Self::NodeId) -> Option<&mut Self::NodeValue> {
+//         self.node_mut(id).map(|node| node.get_mut())
+//     }
+
+//     fn edge_value_mut(&mut self, id: Self::EdgeId) -> Option<&mut Self::EdgeValue> {
+//         self.edge_mut(id).map(|edge| edge.get_mut())
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Default for Generic<N, E, K, I, T, L> {
+//     fn default() -> Self {
+//         Self::new()
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Generic<N, E, K, I, T, L> {
+//     fn node(&self, index: NodeIndex<I>) -> Option<&Node<N, I>> {
+//         self.nodes.get(index.index())
+//     }
+
+//     fn node_mut(&mut self, index: NodeIndex<I>) -> Option<&mut Node<N, I>> {
+//         self.nodes.get_mut(index.index())
+//     }
+
+//     fn edge(&self, index: EdgeIndex<I>) -> Option<&Edge<E, I>> {
+//         self.edges.get(index.index())
+//     }
+
+//     fn edge_mut(&mut self, index: EdgeIndex<I>) -> Option<&mut Edge<E, I>> {
+//         self.edges.get_mut(index.index())
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Clear for Generic<N, E, K, I, T, L> {
+//     fn clear(&mut self) {
+//         self.nodes.clear();
+//         self.edges.clear();
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> ClearEdges for Generic<N, E, K, I, T, L> {
+//     fn clear_edges(&mut self) {
+//         self.nodes.iter_mut().for_each(|node| {
+//             node.next.reset();
+//         });
+
+//         self.edges.clear();
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Reverse for Graph<N, E, K, I, T, L> {
+//     fn reverse(&mut self) {
+//         self.nodes.iter_mut().for_each(|node| node.next.reverse());
+
+//         self.edges.iter_mut().for_each(|edge| {
+//             edge.connection.reverse();
+//             edge.next.reverse();
+//         });
+//     }
+// }
+
+// impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Find for Graph<N, E, K, I, T, L> {
+//     fn find(
+//         &self,
+//         connection: Connection<Self::NodeId>,
+//     ) -> Result<Self::Iterator<'_>, Self::MissingError> {
+//         todo!()
+//     }
+// }
 
 /*
 impl<N, E, K: Kind, I: Id> Graph<N, E, K, I> {
@@ -297,7 +551,7 @@ impl<N, E, K: Kind, I: Id> Graph<N, E, K, I> {
 
         if index.is_limit() {
             return Err(Error::edge_limit(value));
-        }
+            }
 
         let edge = match self.at_most_two(source, target) {
             Output::None => return Err(Error::out_of_bounds(value)),

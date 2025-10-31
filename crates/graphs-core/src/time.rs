@@ -1,11 +1,17 @@
 use crate::id::{DefaultNodeId, NodeTypeId};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Time {
     value: usize,
 }
 
 pub const START: usize = 0;
+
+impl Default for Time {
+    fn default() -> Self {
+        Self::start()
+    }
+}
 
 impl Time {
     pub const fn new(value: usize) -> Self {
@@ -16,16 +22,16 @@ impl Time {
         Self::START
     }
 
-    pub const fn copy(&self) -> Self {
-        Self::new(self.value)
-    }
-
     pub const fn increment(&mut self) -> Self {
-        let copy = self.copy();
+        let copy = *self;
 
-        self.value += 1;
+        self.increment_in_place();
 
         copy
+    }
+
+    pub const fn increment_in_place(&mut self) {
+        self.value = self.value.saturating_add(1);
     }
 
     pub const fn get(self) -> usize {
@@ -35,10 +41,16 @@ impl Time {
     pub const START: Self = Self::new(START);
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Timed<N: NodeTypeId = DefaultNodeId> {
     pub node: N,
     pub time: Time,
+}
+
+impl<N: NodeTypeId> Default for Timed<N> {
+    fn default() -> Self {
+        Self::limit()
+    }
 }
 
 impl<N: NodeTypeId> Timed<N> {
@@ -46,7 +58,11 @@ impl<N: NodeTypeId> Timed<N> {
         Self { node, time }
     }
 
-    pub const fn copy(&self) -> Self {
-        Self::new(self.node, self.time.copy())
+    pub const fn limit_at(time: Time) -> Self {
+        Self::new(N::LIMIT, time)
+    }
+
+    pub const fn limit() -> Self {
+        Self::limit_at(Time::start())
     }
 }

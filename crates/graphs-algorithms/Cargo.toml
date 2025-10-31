@@ -2,6 +2,7 @@
 name = "graphs-algorithms"
 version.workspace = true
 authors.workspace = true
+rust-version.workspace = true
 edition.workspace = true
 description = "Various graph algorithms."
 documentation = "https://docs.rs/graphs-algorithms"
@@ -10,7 +11,7 @@ repository.workspace = true
 license.workspace = true
 keywords = ["graph", "algorithm"]
 
-[dependencies.cfg-if]
+[dependencies.graphs-union-find]
 workspace = true
 
 [dependencies.thiserror]
@@ -19,7 +20,7 @@ workspace = true
 [features]
 # TODO: add "std" here
 default = []
-std = ["thiserror/std"]
+std = ["graphs-union-find/std"]
 alloc = []
 
 [package.metadata.docs.rs]

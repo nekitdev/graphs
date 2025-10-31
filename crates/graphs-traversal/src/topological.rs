@@ -2,8 +2,9 @@
 use alloc::vec::Vec;
 
 use graphs_core::{
-    adapters::Adapt,
+    adapters::Adapters,
     base::Base,
+    by::By,
     id::NodeTypeId,
     identifiers::NodeIdentifiers,
     neighbors::{DirectedNeighbors, Neighbors},
@@ -44,7 +45,7 @@ impl<N: NodeTypeId, V: Visitor<N>> Topological<N, V> {
         self.visit.extend(
             graph
                 .node_identifiers() // select isolated and source nodes
-                .filter(|node_ref| !graph.has_incoming(node_ref.clone())),
+                .filter(|&node| !graph.has_incoming_neighbors(node)),
         );
     }
 
@@ -62,7 +63,8 @@ impl<N: NodeTypeId, V: Visitor<N>> Topological<N, V> {
             if self.ordered.visit(node) {
                 for neighbor in graph.neighbors(node) {
                     if graph
-                        .as_reversed()
+                        .by_ref()
+                        .reversed()
                         .neighbors(neighbor)
                         .all(|other| self.ordered.was_visited(other))
                     {
@@ -90,4 +92,4 @@ impl<G: Visit + NodeIdentifiers + DirectedNeighbors> Walker<G>
 
 pub type TopologicalOf<G> = Topological<<G as Base>::NodeId, <G as Visit>::Visitor>;
 
-pub type TopologicalIter<'g, G> = Walk<'g, G, TopologicalOf<G>>;
+pub type TopologicalWalk<'g, G> = Walk<'g, G, TopologicalOf<G>>;

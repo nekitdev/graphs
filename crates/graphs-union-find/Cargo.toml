@@ -1,0 +1,26 @@
+[package]
+name = "graphs-union-find"
+version.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+description = "Union-find data structures."
+documentation = "https://docs.rs/graphs-union-find"
+readme = "README.md"
+repository.workspace = true
+license.workspace = true
+keywords = ["graph", "union", "find"]
+
+[dependencies.graphs-core]
+workspace = true
+
+[dependencies.thiserror]
+workspace = true
+
+[features]
+# TODO: add "std" here
+default = []
+std = []
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]

@@ -1,53 +1,53 @@
 //! Core functionality for graphs.
 
-#![forbid(unsafe_code)]
 // #![deny(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
 
 pub mod adapters;
+pub mod algorithm;
 pub mod base;
 pub mod build;
+pub mod by;
 pub mod capacity;
-pub mod connection;
+pub mod clear;
 #[macro_use]
 pub mod control;
+pub mod connections;
 pub mod count;
 pub mod create;
+pub mod cycles;
 pub mod data;
 pub mod degree;
 pub mod direction;
-pub mod empty;
+pub mod edges;
+pub mod exhaust;
+pub mod extend;
+pub mod find;
 pub mod freeze;
+pub mod frozen;
 pub mod id;
 pub mod identifiers;
-pub mod incidence;
 pub mod indexed;
-pub mod item;
-pub mod kind;
+pub mod keys;
+#[macro_use]
+pub mod items;
+pub mod kinds;
+pub mod loops;
+pub mod markers;
 pub mod neighbors;
-pub mod next;
+// pub mod next;
+#[macro_use]
+pub mod recoverable;
 pub mod recursive;
+pub mod reverse;
+pub mod select;
 pub mod size;
+pub mod specs;
 pub mod time;
+pub mod types;
 pub mod visit;
 pub mod walk;
-
-pub use adapters::Adapt;
-pub use build::Build;
-pub use capacity::{Capacities, Capacity, EdgeCapacity, NodeCapacity};
-pub use connection::Connection;
-pub use create::Create;
-pub use direction::{Direction, Incoming, Outgoing};
-pub use empty::Empty;
-pub use freeze::{Freeze, Frozen};
-pub use id::Id; // TODO: re-export more
-pub use indexed::{EdgeCompact, EdgeIndexed, NodeCompact, NodeIndexed};
-pub use item::{FromItems, Item};
-pub use kind::{Directed, Kind, Kinded, Undirected};
-pub use neighbors::{DirectedNeighbors, Neighbors};
-pub use next::Next;
-pub use visit::{Visit, Visitor};
-pub use walk::{Walk, Walker};
-
-pub(crate) mod internal;
