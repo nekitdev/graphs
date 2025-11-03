@@ -1,4 +1,6 @@
-use core::{fmt, hash::Hash, marker::PhantomData};
+use core::{fmt, hash::Hash};
+
+use crate::{limit::Limited, markers::Private};
 
 mod sealed {
     pub trait Sealed {}
@@ -9,17 +11,17 @@ pub trait Type: sealed::Sealed {}
 
 /// Represents *untyped* [`Id`] type.
 pub struct NoneType {
-    private: PhantomData<()>,
+    private: Private,
 }
 
 /// Represents *node* [`Id`] type.
 pub struct NodeType {
-    private: PhantomData<()>,
+    private: Private,
 }
 
 /// Represents *edge* [`Id`] type.
 pub struct EdgeType {
-    private: PhantomData<()>,
+    private: Private,
 }
 
 impl sealed::Sealed for NoneType {}
@@ -31,23 +33,9 @@ impl Type for NodeType {}
 impl Type for EdgeType {}
 
 /// Represents identifiers in graphs.
-pub trait Id: Copy + Ord + Hash {
+pub trait Id: Copy + Ord + Hash + Limited {
     /// The type of the identifier.
     type Type: Type;
-
-    /// The limiting value of the identifier.
-    ///
-    /// This is used to represent non-existing nodes or edges.
-    const LIMIT: Self;
-
-    /// Checks if the identifier is the limit.
-    ///
-    /// The default implementation simply compares [`Self`] with [`LIMIT`].
-    ///
-    /// [`LIMIT`]: Self::LIMIT
-    fn is_limit(self) -> bool {
-        self == Self::LIMIT
-    }
 }
 
 pub trait UntypedId: Id<Type = NoneType> {}
@@ -58,19 +46,17 @@ impl<I: Id<Type = NoneType>> UntypedId for I {}
 impl<N: Id<Type = NodeType>> NodeTypeId for N {}
 impl<E: Id<Type = EdgeType>> EdgeTypeId for E {}
 
-macro_rules! impl_untyped_id_limit_via_max {
+macro_rules! impl_untyped_id {
     ($($int: ty),* $(,)?) => {
         $(
             impl $crate::id::Id for $int {
                 type Type = $crate::id::NoneType;
-
-                const LIMIT: Self = Self::MAX;
             }
         )*
     };
 }
 
-impl_untyped_id_limit_via_max!(u8, u16, u32, u64, u128, usize);
+impl_untyped_id!(u8, u16, u32, u64, u128, usize);
 
 /// The default *untyped* [`Id`].
 pub type DefaultUntypedId = usize;
@@ -87,18 +73,6 @@ pub struct NodeId<I: UntypedId = DefaultUntypedId> {
 #[repr(transparent)]
 pub struct EdgeId<I: UntypedId = DefaultUntypedId> {
     inner: I,
-}
-
-impl<I: UntypedId> Default for NodeId<I> {
-    fn default() -> Self {
-        Self::limit()
-    }
-}
-
-impl<I: UntypedId> Default for EdgeId<I> {
-    fn default() -> Self {
-        Self::limit()
-    }
 }
 
 impl<I: UntypedId + fmt::Display> fmt::Display for NodeId<I> {
@@ -119,10 +93,6 @@ impl<I: UntypedId> NodeId<I> {
         Self { inner }
     }
 
-    pub const fn limit() -> Self {
-        Self::new(I::LIMIT)
-    }
-
     /// Returns the contained *untyped* identifier.
     pub const fn get(self) -> I {
         self.inner
@@ -135,34 +105,34 @@ impl<I: UntypedId> EdgeId<I> {
         Self { inner }
     }
 
-    pub const fn limit() -> Self {
-        Self::new(I::LIMIT)
-    }
-
     /// Returns the contained *untyped* identifier.
     pub const fn get(self) -> I {
         self.inner
     }
 }
 
-impl<I: UntypedId> Id for NodeId<I> {
-    type Type = NodeType;
-
+impl<I: UntypedId> Limited for NodeId<I> {
     const LIMIT: Self = Self::new(I::LIMIT);
 
-    fn is_limit(self) -> bool {
+    fn is_limit(&self) -> bool {
         self.get().is_limit()
     }
 }
 
-impl<I: UntypedId> Id for EdgeId<I> {
-    type Type = EdgeType;
-
+impl<I: UntypedId> Limited for EdgeId<I> {
     const LIMIT: Self = Self::new(I::LIMIT);
 
-    fn is_limit(self) -> bool {
+    fn is_limit(&self) -> bool {
         self.get().is_limit()
     }
+}
+
+impl<I: UntypedId> Id for NodeId<I> {
+    type Type = NodeType;
+}
+
+impl<I: UntypedId> Id for EdgeId<I> {
+    type Type = EdgeType;
 }
 
 /// The default *node* [`Id`].

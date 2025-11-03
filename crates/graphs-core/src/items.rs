@@ -14,16 +14,6 @@ pub enum Item<N, E> {
     Edge(E),
 }
 
-pub struct IterItem<N, E> {
-    inner: Item<N, E>,
-}
-
-impl<N, E> IterItem<N, E> {
-    pub(crate) const fn new(inner: Item<N, E>) -> Self {
-        Self { inner }
-    }
-}
-
 pub use Item::{Edge, Node};
 
 pub type ItemRef<'a, N, E> = Item<&'a N, &'a E>;

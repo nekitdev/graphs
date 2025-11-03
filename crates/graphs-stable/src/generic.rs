@@ -1,82 +1,42 @@
 use graphs_core::{
+    base::Base,
     capacity::Capacities,
     count::Counts,
-    keys::{DefaultUntypedIndex, EdgeIndex, NodeIndex, UntypedIndex},
+    create::Create,
+    index::{DefaultUntypedIndex, EdgeIndex, NodeIndex, UntypedIndex},
     kinds::{DefaultKind, Kind},
     loops::{DefaultLoop, Loop},
     types::{DefaultType, Type},
 };
-use graphs_simple::generic::Generic;
+use graphs_simple::generic::GenericGraph;
 
-pub(crate) struct Free<I: UntypedIndex = DefaultUntypedIndex> {
-    pub(crate) node: NodeIndex<I>,
-    pub(crate) edge: EdgeIndex<I>,
-}
+use crate::parts::{Connection, Info};
 
-impl<I: UntypedIndex> Free<I> {
-    pub(crate) const fn new(node: NodeIndex<I>, edge: EdgeIndex<I>) -> Self {
-        Self { node, edge }
-    }
-
-    pub(crate) const fn limit() -> Self {
-        Self::new(NodeIndex::limit(), EdgeIndex::limit())
-    }
-
-    pub(crate) const fn reset(&mut self) {
-        self.node = NodeIndex::limit();
-        self.edge = EdgeIndex::limit();
-    }
-}
-
-impl<I: UntypedIndex> Default for Free<I> {
-    fn default() -> Self {
-        Self::limit()
-    }
-}
-
-pub(crate) struct Info<I: UntypedIndex = DefaultUntypedIndex> {
-    pub(crate) count: Counts,
-    pub(crate) free: Free<I>,
-}
-
-impl<I: UntypedIndex> Info<I> {
-    pub(crate) const fn new(count: Counts, free: Free<I>) -> Self {
-        Self { count, free }
-    }
-
-    pub(crate) const fn initial() -> Self {
-        Self::new(Counts::null(), Free::limit())
-    }
-
-    pub(crate) const fn reset(&mut self) {
-        self.count.reset();
-        self.free.reset();
-    }
-}
-
-pub struct StableGeneric<
+pub struct GenericStableGraph<
     N,
     E,
-    K: Kind = DefaultKind,
     I: UntypedIndex = DefaultUntypedIndex,
+    K: Kind = DefaultKind,
     T: Type = DefaultType,
     L: Loop = DefaultLoop,
 > {
-    pub(crate) graph: Generic<Option<N>, Option<E>, K, I, T, L>,
+    pub(crate) graph: GenericGraph<Option<N>, Option<E>, I, K, T, L>,
     pub(crate) info: Info<I>,
 }
 
-impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Default for StableGeneric<N, E, K, I, T, L> {
+impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> Default
+    for GenericStableGraph<N, E, I, K, T, L>
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> StableGeneric<N, E, K, I, T, L> {
+impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> GenericStableGraph<N, E, I, K, T, L> {
     pub const fn new() -> Self {
         Self {
-            graph: Generic::new(),
-            info: Info::initial(),
+            graph: GenericGraph::new(),
+            info: Info::INITIAL,
         }
     }
 
@@ -105,22 +65,31 @@ impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> StableGeneric<N, E, K, I,
     }
 }
 
-impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> StableGeneric<N, E, K, I, T, L> {
+impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> GenericStableGraph<N, E, I, K, T, L> {
     pub fn with_capacity(capacities: Capacities) -> Self {
-        todo!()
+        Self {
+            graph: GenericGraph::with_capacity(capacities),
+            info: Info::INITIAL,
+        }
     }
 }
 
-impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Base for StableGeneric<N, E, K, I, T, L> {
+impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> Base
+    for GenericStableGraph<N, E, I, K, T, L>
+{
     type NodeId = NodeIndex<I>;
     type EdgeId = EdgeIndex<I>;
+
+    type Connection = Connection<I, K>;
 
     type Kind = K;
     type Type = T;
     type Loop = L;
 }
 
-impl<N, E, K: Kind, I: UntypedIndex, T: Type, L: Loop> Create for StableGeneric<N, E, K, I, T, L> {
+impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> Create
+    for GenericStableGraph<N, E, I, K, T, L>
+{
     fn empty() -> Self {
         Self::new()
     }

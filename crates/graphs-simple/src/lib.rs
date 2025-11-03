@@ -7,13 +7,15 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-pub mod digraph;
-pub mod errors;
+pub mod directed;
 pub mod generic;
-pub mod graph;
+pub mod undirected;
 
-pub use digraph::{DiGraph, LoopedDiGraph, MultiDiGraph, PseudoDiGraph, SimpleDiGraph};
-pub use generic::Generic;
-pub use graph::{Graph, LoopedGraph, MultiGraph, PseudoGraph, SimpleGraph};
+#[doc(inline)]
+pub use directed::{DiGraph, LoopedDiGraph, MultiDiGraph, PseudoDiGraph, SimpleDiGraph};
+#[doc(inline)]
+pub use generic::GenericGraph;
+#[doc(inline)]
+pub use undirected::{Graph, LoopedGraph, MultiGraph, PseudoGraph, SimpleGraph};
 
-pub(crate) mod internal;
+pub(crate) mod parts;

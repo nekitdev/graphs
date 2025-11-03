@@ -39,7 +39,7 @@ where
     }
 }
 
-impl<'g, G: Build + ?Sized, N: Iterator<Item = G::NodeValue>> Iterator for ExtendNodes<'g, G, N> {
+impl<G: Build + ?Sized, N: Iterator<Item = G::NodeValue>> Iterator for ExtendNodes<'_, G, N> {
     type Item = AddNodeResult<G>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -47,7 +47,7 @@ impl<'g, G: Build + ?Sized, N: Iterator<Item = G::NodeValue>> Iterator for Exten
     }
 }
 
-impl<'g, G: Build + ?Sized, E: Iterator<Item = EdgeOf<G>>> Iterator for ExtendEdges<'g, G, E> {
+impl<G: Build + ?Sized, E: Iterator<Item = EdgeOf<G>>> Iterator for ExtendEdges<'_, G, E> {
     type Item = AddEdgeResult<G>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -55,7 +55,7 @@ impl<'g, G: Build + ?Sized, E: Iterator<Item = EdgeOf<G>>> Iterator for ExtendEd
     }
 }
 
-impl<'g, G: Build + ?Sized, C: Iterator<Item = G::Connection>> Iterator for ExtendDefault<'g, G, C>
+impl<G: Build + ?Sized, C: Iterator<Item = G::Connection>> Iterator for ExtendDefault<'_, G, C>
 where
     G::EdgeValue: Default,
 {

@@ -1,5 +1,3 @@
-use crate::id::{DefaultNodeId, NodeTypeId};
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Time {
     value: usize,
@@ -14,14 +12,17 @@ impl Default for Time {
 }
 
 impl Time {
+    #[must_use]
     pub const fn new(value: usize) -> Self {
         Self { value }
     }
 
+    #[must_use]
     pub const fn start() -> Self {
         Self::START
     }
 
+    #[must_use]
     pub const fn increment(&mut self) -> Self {
         let copy = *self;
 
@@ -34,6 +35,7 @@ impl Time {
         self.value = self.value.saturating_add(1);
     }
 
+    #[must_use]
     pub const fn get(self) -> usize {
         self.value
     }
@@ -42,27 +44,23 @@ impl Time {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Timed<N: NodeTypeId = DefaultNodeId> {
-    pub node: N,
+pub struct Timed<T> {
+    pub value: T,
     pub time: Time,
 }
 
-impl<N: NodeTypeId> Default for Timed<N> {
+impl<T: Default> Default for Timed<T> {
     fn default() -> Self {
-        Self::limit()
+        Self::start(T::default())
     }
 }
 
-impl<N: NodeTypeId> Timed<N> {
-    pub const fn new(node: N, time: Time) -> Self {
-        Self { node, time }
+impl<T> Timed<T> {
+    pub const fn new(value: T, time: Time) -> Self {
+        Self { value, time }
     }
 
-    pub const fn limit_at(time: Time) -> Self {
-        Self::new(N::LIMIT, time)
-    }
-
-    pub const fn limit() -> Self {
-        Self::limit_at(Time::start())
+    pub const fn start(value: T) -> Self {
+        Self::new(value, Time::start())
     }
 }

@@ -29,7 +29,7 @@ pub trait Base {
     /// The associated type for edge identifiers.
     type EdgeId: EdgeTypeId;
 
-    type Connection: Connection<Id = Self::NodeId, Kind = Self::Kind>;
+    type Connection: Connection<Item = Self::NodeId, Kind = Self::Kind>;
 
     /// The associated type for graph [`Kind`], [`Directed`] or [`Undirected`].
     ///

@@ -48,6 +48,7 @@ pub struct Capacities {
 
 impl Capacities {
     /// Constructs [`Self`].
+    #[must_use]
     pub const fn new(nodes: usize, edges: usize) -> Self {
         Self { nodes, edges }
     }

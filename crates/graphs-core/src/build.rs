@@ -2,7 +2,7 @@
 
 use crate::{base::Base, connections::Connection, data::Data, recoverable::RecoverableResult};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Edge<T, C: Connection> {
     pub connection: C,
     pub value: T,

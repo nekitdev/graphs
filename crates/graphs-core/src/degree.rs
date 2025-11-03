@@ -10,6 +10,7 @@ pub enum Class {
 pub use Class::{General, Isolated, Sink, Source};
 
 impl Class {
+    #[must_use]
     pub const fn compute(outgoing: bool, incoming: bool) -> Self {
         match (outgoing, incoming) {
             (false, false) => Self::Isolated,
@@ -19,18 +20,22 @@ impl Class {
         }
     }
 
+    #[must_use]
     pub const fn is_isolated(self) -> bool {
         matches!(self, Self::Isolated)
     }
 
+    #[must_use]
     pub const fn is_source(self) -> bool {
         matches!(self, Self::Source)
     }
 
+    #[must_use]
     pub const fn is_sink(self) -> bool {
         matches!(self, Self::Sink)
     }
 
+    #[must_use]
     pub const fn is_general(self) -> bool {
         matches!(self, Self::General)
     }
@@ -43,14 +48,17 @@ pub struct Degrees {
 }
 
 impl Degrees {
+    #[must_use]
     pub const fn new(outgoing: usize, incoming: usize) -> Self {
         Self { outgoing, incoming }
     }
 
+    #[must_use]
     pub const fn total(self) -> usize {
         self.outgoing + self.incoming
     }
 
+    #[must_use]
     pub const fn class(self) -> Class {
         Class::compute(self.outgoing != 0, self.incoming != 0)
     }

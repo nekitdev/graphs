@@ -9,31 +9,31 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Event<C: Connection> {
-    Discover(Timed<C::Id>),
+    Discover(Timed<C::Item>),
     Tree(C),
     Back(C),
     CrossOrForward(C),
-    Finish(Timed<C::Id>),
+    Finish(Timed<C::Item>),
 }
 
 impl<C: Connection> Event<C> {
-    pub fn discover(id: C::Id, time: Time) -> Self {
+    pub const fn discover(id: C::Item, time: Time) -> Self {
         Self::Discover(Timed::new(id, time))
     }
 
-    pub fn tree(node: C::Id, neighbor: C::Id) -> Self {
+    pub fn tree(node: C::Item, neighbor: C::Item) -> Self {
         Self::Tree(C::connecting(node, neighbor))
     }
 
-    pub fn back(node: C::Id, neighbor: C::Id) -> Self {
+    pub fn back(node: C::Item, neighbor: C::Item) -> Self {
         Self::Back(C::connecting(node, neighbor))
     }
 
-    pub fn cross_or_forward(node: C::Id, neighbor: C::Id) -> Self {
+    pub fn cross_or_forward(node: C::Item, neighbor: C::Item) -> Self {
         Self::CrossOrForward(C::connecting(node, neighbor))
     }
 
-    pub fn finish(id: C::Id, time: Time) -> Self {
+    pub const fn finish(id: C::Item, time: Time) -> Self {
         Self::Finish(Timed::new(id, time))
     }
 }
@@ -120,7 +120,7 @@ where
                         // this function does not prune, so this should never happen
 
                         prune => unreachable!()
-                    })
+                    });
                 } else if !finished.was_visited(neighbor) {
                     // `back` event
 

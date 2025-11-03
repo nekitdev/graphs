@@ -17,11 +17,13 @@ pub use Direction::{Incoming, Outgoing};
 
 impl Direction {
     /// Checks whether the direction is [`Outgoing`].
+    #[must_use]
     pub const fn is_outgoing(self) -> bool {
         matches!(self, Self::Outgoing)
     }
 
     /// Checks whether the direction is [`Incoming`].
+    #[must_use]
     pub const fn is_incoming(self) -> bool {
         matches!(self, Self::Incoming)
     }

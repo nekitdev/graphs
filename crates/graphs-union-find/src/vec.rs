@@ -3,11 +3,11 @@ use core::{fmt, marker::PhantomData};
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-use graphs_core::keys::{DefaultUntypedKey, Key};
+use graphs_core::index::{DefaultUntypedIndex, Index};
 
 use crate::rank::Rank;
 
-pub struct UnionFind<K: Key = DefaultUntypedKey> {
+pub struct UnionFind<K: Index = DefaultUntypedIndex> {
     parent: Vec<K>,
     rank: Vec<Rank>,
 }
@@ -17,7 +17,7 @@ pub const SET: &str = "failed to append new set";
 pub const FIND: &str = "failed to find representative";
 
 pub trait UnionFindMethods: Sized {
-    type Key: Key;
+    type Key: Index;
 
     fn empty() -> Self;
 
@@ -57,7 +57,7 @@ pub trait UnionFindMethods: Sized {
     // }
 }
 
-impl<K: Key> UnionFind<K> {
+impl<K: Index> UnionFind<K> {
     pub const fn empty() -> Self {
         let parent = Vec::new();
         let rank = Vec::new();
@@ -85,7 +85,7 @@ impl<K: Key> UnionFind<K> {
     }
 }
 
-impl<K: Key> UnionFindMethods for UnionFind<K> {
+impl<K: Index> UnionFindMethods for UnionFind<K> {
     type Key = K;
 
     fn empty() -> Self {

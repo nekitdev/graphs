@@ -1,3 +1,5 @@
 pub mod generic;
 
-pub use generic::StableGeneric;
+pub use generic::GenericStableGraph;
+
+pub(crate) mod parts;

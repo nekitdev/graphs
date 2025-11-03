@@ -1,5 +1,7 @@
 //! Traits for graphs that are aware of their node and edge counts.
 
+use core::mem::replace;
+
 /// Represents graphs that are aware of their node count.
 pub trait NodeCount {
     /// Returns the number of nodes in this graph.
@@ -48,25 +50,24 @@ pub struct Counts {
 
 impl Default for Counts {
     fn default() -> Self {
-        Self::null()
+        Self::NULL
     }
 }
 
 impl Counts {
+    pub const NULL: Self = Self::new(0, 0);
+
     /// Constructs [`Self`].
+    #[must_use]
     pub const fn new(nodes: usize, edges: usize) -> Self {
         Self { nodes, edges }
     }
 
-    pub const fn null() -> Self {
-        Self::new(0, 0)
+    pub const fn reset(&mut self) -> Self {
+        replace(self, Self::NULL)
     }
 
-    pub const fn reset(&mut self) {
-        self.nodes = 0;
-        self.edges = 0;
-    }
-
+    #[must_use]
     pub const fn is_null(&self) -> bool {
         self.nodes == 0 && self.edges == 0
     }

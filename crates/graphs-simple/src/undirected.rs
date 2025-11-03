@@ -1,15 +1,15 @@
 use graphs_core::{
-    keys::DefaultUntypedIndex,
+    index::DefaultUntypedIndex,
     kinds::Undirected,
     loops::{Allow, DefaultLoop, Forbid},
     types::{DefaultType, Multiple, Single},
 };
 
-use crate::generic::Generic;
+use crate::generic::GenericGraph;
 
 /// Represents undirected graphs.
 pub type Graph<N, E, I = DefaultUntypedIndex, T = DefaultType, L = DefaultLoop> =
-    Generic<N, E, Undirected, I, T, L>;
+    GenericGraph<N, E, I, Undirected, T, L>;
 
 pub type SimpleGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Single, Forbid>;
 pub type LoopedGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Single, Allow>;
@@ -20,7 +20,7 @@ pub type PseudoGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Multiple, A
 mod assert {
     use graphs_core::{
         base::{assert_looped, assert_multi, assert_pseudo, assert_simple, assert_undirected},
-        keys::UntypedIndex,
+        index::UntypedIndex,
         loops::Loop,
         types::Type,
     };

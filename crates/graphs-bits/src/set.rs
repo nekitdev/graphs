@@ -1,7 +1,7 @@
 #[cfg(not(any(feature = "std", feature = "alloc")))]
 compile_error!("expected either `std` or `alloc` to be enabled");
 
-use graphs_core::{keys::NodeTypeIndex, visit::Visitor};
+use graphs_core::{index::NodeTypeIndex, visit::Visitor};
 
 use crate::{
     block::{BitBlock, DefaultBlock},

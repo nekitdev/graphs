@@ -37,16 +37,19 @@ pub enum Selection {
 
 impl Selection {
     /// Checks whether the selection is [`Outgoing`].
+    #[must_use]
     pub const fn is_outgoing(self) -> bool {
         matches!(self, Self::Outgoing)
     }
 
     /// Checks whether the selection is [`Incoming`].
+    #[must_use]
     pub const fn is_incoming(self) -> bool {
         matches!(self, Self::Incoming)
     }
 
     /// Checks whether the selection is [`All`].
+    #[must_use]
     pub const fn is_all(self) -> bool {
         matches!(self, Self::All)
     }

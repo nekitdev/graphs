@@ -11,6 +11,7 @@ pub trait Marker {
 }
 
 pub trait MarkerOutput: Marker {
+    #[must_use]
     fn output() -> Output<Self> {
         Output::new()
     }
@@ -34,8 +35,15 @@ impl<M: Marker + ?Sized> fmt::Display for Output<M> {
     }
 }
 
+impl<M: Marker + ?Sized> Default for Output<M> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<M: Marker + ?Sized> Output<M> {
-    pub(crate) const fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             marker: PhantomData,
         }

@@ -29,10 +29,12 @@ impl<'f, T: ?Sized> Frozen<'f, T> {
         Self { value }
     }
 
+    #[must_use]
     pub const fn get_ref(&self) -> &T {
         self.value
     }
 
+    #[must_use]
     pub const fn get(self) -> &'f mut T {
         self.value
     }
