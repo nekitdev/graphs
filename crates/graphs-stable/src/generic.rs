@@ -1,16 +1,17 @@
+use graphs_common::index::{EdgeIndex, NodeIndex};
 use graphs_core::{
     base::Base,
     capacity::Capacities,
-    count::Counts,
+    cardinality::Cardinality,
     create::Create,
-    index::{DefaultUntypedIndex, EdgeIndex, NodeIndex, UntypedIndex},
+    index::{DefaultUntypedIndex, UntypedIndex},
     kinds::{DefaultKind, Kind},
     loops::{DefaultLoop, Loop},
     types::{DefaultType, Type},
 };
-use graphs_simple::generic::GenericGraph;
+use graphs_simple::{generic::GenericGraph, parts::Connection};
 
-use crate::parts::{Connection, Info};
+use crate::parts::Info;
 
 pub struct GenericStableGraph<
     N,
@@ -40,16 +41,16 @@ impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> GenericStableGraph<N, E, 
         }
     }
 
-    pub const fn count(&self) -> Counts {
-        self.info.count
+    pub const fn cardinality(&self) -> Cardinality {
+        self.info.cardinality
     }
 
-    pub const fn node_count(&self) -> usize {
-        self.info.count.nodes
+    pub const fn order(&self) -> usize {
+        self.cardinality().order
     }
 
-    pub const fn edge_count(&self) -> usize {
-        self.info.count.edges
+    pub const fn size(&self) -> usize {
+        self.cardinality().size
     }
 
     pub const fn node_capacity(&self) -> usize {

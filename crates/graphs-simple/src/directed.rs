@@ -1,4 +1,8 @@
+use graphs_assert::{
+    assert_directed, assert_graph, assert_looped, assert_multi, assert_pseudo, assert_simple,
+};
 use graphs_core::{
+    build::TryAddEdges,
     index::{DefaultUntypedIndex, UntypedIndex},
     kinds::Directed,
     loops::{Allow, DefaultLoop, Forbid, Loop},
@@ -8,13 +12,23 @@ use graphs_core::{
 
 use crate::generic::GenericGraph;
 
+/// Represents directed graphs.
 pub type DiGraph<N, E, I = DefaultUntypedIndex, T = DefaultType, L = DefaultLoop> =
     GenericGraph<N, E, I, Directed, T, L>;
 
+/// Represents directed simple graphs.
 pub type SimpleDiGraph<N, E, I = DefaultUntypedIndex> = DiGraph<N, E, I, Single, Forbid>;
+
+/// Represents directed looped graphs.
 pub type LoopedDiGraph<N, E, I = DefaultUntypedIndex> = DiGraph<N, E, I, Single, Allow>;
+
+/// Represents directed multi graphs.
 pub type MultiDiGraph<N, E, I = DefaultUntypedIndex> = DiGraph<N, E, I, Multiple, Forbid>;
+
+/// Represents directed pseudo graphs.
 pub type PseudoDiGraph<N, E, I = DefaultUntypedIndex> = DiGraph<N, E, I, Multiple, Allow>;
+
+// impl<N, E, I: UntypedIndex> TryAddEdges for PseudoDiGraph<N, E, I> {}
 
 // impl<N, E, I: UntypedIndex> Build for PseudoDiGraph<N, E, I> {
 //     type NodeError = NodeError;
@@ -63,34 +77,8 @@ impl<N, E, I: UntypedIndex, T: Type, L: Loop> Reverse for DiGraph<N, E, I, T, L>
     }
 }
 
-#[allow(dead_code)]
-mod assert {
-    use graphs_core::{
-        base::{assert_directed, assert_looped, assert_multi, assert_pseudo, assert_simple},
-        index::UntypedIndex,
-        loops::Loop,
-        types::Type,
-    };
-
-    use super::{DiGraph, LoopedDiGraph, MultiDiGraph, PseudoDiGraph, SimpleDiGraph};
-
-    const fn assert_on_base<N, E, I: UntypedIndex, T: Type, L: Loop>() {
-        assert_directed::<DiGraph<N, E, I, T, L>>();
-    }
-
-    const fn assert_on_simple<N, E, I: UntypedIndex>() {
-        assert_simple::<SimpleDiGraph<N, E, I>>();
-    }
-
-    const fn assert_on_looped<N, E, I: UntypedIndex>() {
-        assert_looped::<LoopedDiGraph<N, E, I>>();
-    }
-
-    const fn assert_on_multi<N, E, I: UntypedIndex>() {
-        assert_multi::<MultiDiGraph<N, E, I>>();
-    }
-
-    const fn assert_on_pseudo<N, E, I: UntypedIndex>() {
-        assert_pseudo::<PseudoDiGraph<N, E, I>>();
-    }
-}
+assert_directed!(DiGraph<N, E, I: UntypedIndex, T: Type, L: Loop>);
+assert_simple!(SimpleDiGraph<N, E, I: UntypedIndex>);
+assert_looped!(LoopedDiGraph<N, E, I: UntypedIndex>);
+assert_multi!(MultiDiGraph<N, E, I: UntypedIndex>);
+assert_pseudo!(PseudoDiGraph<N, E, I: UntypedIndex>);

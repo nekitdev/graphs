@@ -1,7 +1,8 @@
 //! Base traits for graphs.
 
+use trait_aliases::trait_aliases;
+
 use crate::{
-    algorithm::Algorithm,
     connections::Connection,
     id::{EdgeTypeId, NodeTypeId},
     kinds::{self, Kind},
@@ -11,7 +12,8 @@ use crate::{
 
 /// Represents the base definition of any graph.
 ///
-/// There are several trait aliases, for variations of the associated [`Loop`] and [`Type`] types.
+/// There are several trait aliases, for various combinations
+/// of the associated [`Loop`] and [`Type`] types.
 ///
 /// | `Alias`    | [`Loop`]   | [`Type`]     |
 /// |------------|------------|--------------|
@@ -20,7 +22,11 @@ use crate::{
 /// | [`Multi`]  | [`Forbid`] | [`Multiple`] |
 /// | [`Pseudo`] | [`Allow`]  | [`Multiple`] |
 ///
-/// Additionally, there are trait aliases based on the associated [`Kind`] types,
+/// Additionally, there are [`ForbidLoop`] and [`AllowLoop`]
+/// along with [`SingleType`] and [`MultipleType`], which allow restrictions on
+/// only one of the associated types instead of their combination.
+///
+/// Finally, there are trait aliases based on the associated [`Kind`] types,
 /// namely [`Directed`] and [`Undirected`].
 pub trait Base {
     /// The associated type for node identifiers.
@@ -29,33 +35,20 @@ pub trait Base {
     /// The associated type for edge identifiers.
     type EdgeId: EdgeTypeId;
 
-    type Connection: Connection<Item = Self::NodeId, Kind = Self::Kind>;
+    /// The associated type for node connections.
+    type Connection: Connection<NodeId = Self::NodeId, Kind = Self::Kind>;
 
-    /// The associated type for graph [`Kind`], [`Directed`] or [`Undirected`].
+    /// The associated type for graph kinds, either [`Directed`] or [`Undirected`].
     ///
-    /// [`Directed`]: crate::kinds::Directed
-    /// [`Undirected`]: crate::kinds::Undirected
+    /// [`Directed`]: kinds::Directed
+    /// [`Undirected`]: kinds::Undirected
     type Kind: Kind;
 
-    /// The associated type for graph [`Type`], [`Single`] or [`Multiple`].
+    /// The associated types for graph edges, either [`Single`] or [`Multiple`].
     type Type: Type;
 
-    /// The associated type for graph [`Loop`], [`Allow`] or [`Forbid`].
+    /// The associated types for graph loops, either [`Forbid`] or [`Allow`].
     type Loop: Loop;
-
-    /// Applies the given algorithm to the graph.
-    ///
-    /// Use [`by_ref`] or [`by_mut`] to apply the algorithm by reference or mutable reference,
-    /// respectively, instead of taking ownership.
-    ///
-    /// [`by_ref`]: crate::by::By::by_ref
-    /// [`by_mut`]: crate::by::By::by_mut
-    fn apply<A: Algorithm<Self>>(self, mut algorithm: A) -> A::Output
-    where
-        Self: Sized,
-    {
-        algorithm.perform(self)
-    }
 }
 
 impl<G: Base + ?Sized> Base for &G {
@@ -80,36 +73,76 @@ impl<G: Base + ?Sized> Base for &mut G {
     type Loop = G::Loop;
 }
 
-/// Represents graphs that *forbid* loops and have *single* edges.
-pub trait Simple: Base<Loop = Forbid, Type = Single> {}
+trait_aliases! {
+    /// Represents graphs that *forbid* loops.
+    ///
+    /// Implemented for any [`Base`] graph with [`Loop`] set to [`Forbid`]
+    ///
+    /// [`Loop`]: Base::Loop
+    #[trait_alias(G)]
+    pub trait ForbidLoop = Base<Loop = Forbid>;
 
-/// Represents graphs that *allow* loops and otherwise have *single* edges.
-pub trait Looped: Base<Loop = Allow, Type = Single> {}
+    /// Represents graphs that *allow* loops.
+    ///
+    /// Implemented for any [`Base`] graph with [`Loop`] set to [`Allow`].
+    ///
+    /// [`Loop`]: Base::Loop
+    #[trait_alias(G)]
+    pub trait AllowLoop = Base<Loop = Allow>;
 
-/// Represents graphs that *forbid* loops and have *multiple* edges.
-pub trait Multi: Base<Loop = Forbid, Type = Multiple> {}
+    /// Represents graphs that have *single* edges.
+    ///
+    /// Implemented for any [`Base`] graph with [`Type`] set to [`Single`].
+    ///
+    /// [`Type`]: Base::Type
+    #[trait_alias(G)]
+    pub trait SingleType = Base<Type = Single>;
 
-/// Represents graphs that *allow* loops and have *multiple* edges.
-pub trait Pseudo: Base<Loop = Allow, Type = Multiple> {}
+    /// Represents graphs that have *multiple* edges.
+    ///
+    /// Implemented for any [`Base`] graph with [`Type`] set to [`Multiple`].
+    ///
+    /// [`Type`]: Base::Type
+    #[trait_alias(G)]
+    pub trait MultipleType = Base<Type = Multiple>;
 
-impl<G: Base<Loop = Forbid, Type = Single> + ?Sized> Simple for G {}
-impl<G: Base<Loop = Allow, Type = Single> + ?Sized> Looped for G {}
-impl<G: Base<Loop = Forbid, Type = Multiple> + ?Sized> Multi for G {}
-impl<G: Base<Loop = Allow, Type = Multiple> + ?Sized> Pseudo for G {}
+    /// Represents graphs that *forbid* loops and have *single* edges.
+    ///
+    /// Implemented for any [`ForbidLoop`] and [`SingleType`] graph.
+    #[trait_alias(G)]
+    pub trait Simple = ForbidLoop + SingleType;
 
-pub const fn assert_simple<G: Simple + ?Sized>() {}
-pub const fn assert_looped<G: Looped + ?Sized>() {}
-pub const fn assert_multi<G: Multi + ?Sized>() {}
-pub const fn assert_pseudo<G: Pseudo + ?Sized>() {}
+    /// Represents graphs that *allow* loops and have *single* edges.
+    ///
+    /// Implemented for any [`AllowLoop`] and [`SingleType`] graph.
+    #[trait_alias(G)]
+    pub trait Looped = AllowLoop + SingleType;
 
-/// Represents *directed* graphs.
-pub trait Directed: Base<Kind = kinds::Directed> {}
+    /// Represents graphs that *forbid* loops and have *multiple* edges.
+    ///
+    /// Implemented for any [`ForbidLoop`] and [`MultipleType`] graph.
+    #[trait_alias(G)]
+    pub trait Multi = ForbidLoop + MultipleType;
 
-/// Represents *undirected* graphs.
-pub trait Undirected: Base<Kind = kinds::Undirected> {}
+    /// Represents graphs that *allow* loops and have *multiple* edges.
+    ///
+    /// Implemented for any [`AllowLoop`] and [`MultipleType`] graph.
+    #[trait_alias(G)]
+    pub trait Pseudo = AllowLoop + MultipleType;
 
-impl<G: Base<Kind = kinds::Directed> + ?Sized> Directed for G {}
-impl<G: Base<Kind = kinds::Undirected> + ?Sized> Undirected for G {}
+    /// Represents *directed* graphs.
+    ///
+    /// Implemented for any [`Base`] graph with [`Kind`] set to [`Directed`].
+    ///
+    /// [`Kind`]: Base::Kind
+    #[trait_alias(G)]
+    pub trait Directed = Base<Kind = kinds::Directed>;
 
-pub const fn assert_directed<G: Directed + ?Sized>() {}
-pub const fn assert_undirected<G: Undirected + ?Sized>() {}
+    /// Represents *undirected* graphs.
+    ///
+    /// Implemented for any [`Base`] graph with [`Kind`] set to [`Undirected`].
+    ///
+    /// [`Kind`]: Base::Kind
+    #[trait_alias(G)]
+    pub trait Undirected = Base<Kind = kinds::Undirected>;
+}

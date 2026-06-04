@@ -47,7 +47,7 @@ impl<N: NodeTypeId, V: Visitor<N>> DfsPostOrder<N, V> {
 
     pub fn next<G: Neighbors<NodeId = N>>(&mut self, graph: G) -> Option<N> {
         while let Some(node) = self.stack.last().copied() {
-            if self.discovered.visit(node) {
+            if self.discovered.visit(node).is_newly() {
                 for neighbor in graph.neighbors(node) {
                     if !self.discovered.was_visited(neighbor) {
                         self.stack.push(neighbor);
@@ -56,7 +56,7 @@ impl<N: NodeTypeId, V: Visitor<N>> DfsPostOrder<N, V> {
             } else {
                 self.stack.pop();
 
-                if self.finished.visit(node) {
+                if self.finished.visit(node).is_newly() {
                     return Some(node);
                 }
             }
@@ -74,6 +74,6 @@ impl<G: Visit + Neighbors> Walker<G> for DfsPostOrder<G::NodeId, G::Visitor> {
     }
 }
 
-pub type DfsPostOrderOf<G> = DfsPostOrder<<G as Base>::NodeId, <G as Visit>::Visitor>;
+pub type DfsPostOrderOn<G> = DfsPostOrder<<G as Base>::NodeId, <G as Visit>::Visitor>;
 
-pub type DfsPostOrderWalk<'g, G> = Walk<'g, G, DfsPostOrderOf<G>>;
+pub type DfsPostOrderWalk<'g, G> = Walk<'g, G, DfsPostOrderOn<G>>;

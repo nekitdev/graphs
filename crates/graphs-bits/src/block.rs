@@ -3,17 +3,11 @@ use core::{
     ops::{BitAnd, BitOr, BitXor, Not},
 };
 
-use thiserror::Error;
-
-pub const OVERFLOW: &str = "overflow";
-
-#[derive(Debug, Error)]
-#[error("{OVERFLOW}")]
-pub struct Overflow;
-
 pub type Byte = u8;
-pub type Bits = u8;
 pub type Base = u32;
+pub type Bits = usize;
+
+pub const OVERFLOW: &str = "bits overflow";
 
 pub const BYTE_BITS: Bits = Byte::BITS as Bits;
 
@@ -21,16 +15,12 @@ pub const fn blocks<B: BitBlock>(bits: usize) -> usize {
     bits.div_ceil(B::BITS as usize)
 }
 
-pub const fn bits<B: BitBlock>(blocks: usize) -> Option<usize> {
+pub const fn try_bits<B: BitBlock>(blocks: usize) -> Option<usize> {
     blocks.checked_mul(B::BITS as usize)
 }
 
-pub const fn try_bits<B: BitBlock>(blocks: usize) -> Result<usize, Overflow> {
-    if let Some(bits) = bits::<B>(blocks) {
-        Ok(bits)
-    } else {
-        Err(Overflow)
-    }
+pub const fn bits<B: BitBlock>(blocks: usize) -> usize {
+    try_bits::<B>(blocks).expect(OVERFLOW)
 }
 
 pub const fn div_rem<B: BitBlock>(bit: usize) -> (usize, usize) {
@@ -39,7 +29,6 @@ pub const fn div_rem<B: BitBlock>(bit: usize) -> (usize, usize) {
 
 pub trait BitBlock:
     Copy
-    + Eq
     + Ord
     + Hash
     + Not<Output = Self>
@@ -53,8 +42,6 @@ pub trait BitBlock:
     const ONE: Self;
     const ALL: Self;
 
-    fn from_byte(byte: Byte) -> Self;
-
     fn checked_add(self, other: Self) -> Option<Self>;
     fn checked_sub(self, other: Self) -> Option<Self>;
 
@@ -65,7 +52,11 @@ pub trait BitBlock:
         blocks::<Self>(bits)
     }
 
-    fn bits(blocks: usize) -> Option<usize> {
+    fn try_bits(blocks: usize) -> Option<usize> {
+        try_bits::<Self>(blocks)
+    }
+
+    fn bits(blocks: usize) -> usize {
         bits::<Self>(blocks)
     }
 
@@ -73,26 +64,42 @@ pub trait BitBlock:
         div_rem::<Self>(bit)
     }
 
-    fn flag(shift: Bits) -> Option<Self> {
+    fn try_flag(shift: Bits) -> Option<Self> {
         Self::ONE.checked_shift_left(shift)
     }
 
-    fn mask(bits: Bits) -> Option<Self> {
-        let flag = Self::flag(bits)?;
+    fn flag(shift: Bits) -> Self {
+        Self::try_flag(shift).expect(OVERFLOW)
+    }
+
+    fn try_mask(bits: Bits) -> Option<Self> {
+        let flag = Self::try_flag(bits)?;
 
         flag.checked_sub(Self::ONE)
     }
 
-    fn inverse_mask(bits: Bits) -> Option<Self> {
-        let mask = Self::mask(bits)?;
+    fn mask(bits: Bits) -> Self {
+        Self::try_mask(bits).expect(OVERFLOW)
+    }
+
+    fn try_inverse_mask(bits: Bits) -> Option<Self> {
+        let mask = Self::try_mask(bits)?;
 
         Some(!mask)
     }
 
-    fn get(self, bit: Bits) -> Option<bool> {
-        let flag = Self::flag(bit)?;
+    fn inverse_mask(bits: Bits) -> Self {
+        Self::try_inverse_mask(bits).expect(OVERFLOW)
+    }
+
+    fn try_get(self, bit: Bits) -> Option<bool> {
+        let flag = Self::try_flag(bit)?;
 
         Some((self & flag).is_non_zero())
+    }
+
+    fn get(self, bit: Bits) -> bool {
+        self.try_get(bit).expect(OVERFLOW)
     }
 
     fn is_zero(self) -> bool {
@@ -119,10 +126,6 @@ macro_rules! impl_primitive {
                 const ZERO: Self = 0;
                 const ONE: Self = 1;
                 const ALL: Self = !Self::ZERO;
-
-                fn from_byte(byte: Byte) -> Self {
-                    byte as $type
-                }
 
                 fn checked_add(self, other: Self) -> Option<Self> {
                     self.checked_add(other)

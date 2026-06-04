@@ -42,7 +42,7 @@ impl<N: NodeTypeId, V: Visitor<N>> Bfs<N, V> {
     pub fn move_to(&mut self, node: N) {
         self.queue.clear();
 
-        if self.discovered.visit(node) {
+        if self.discovered.visit(node).is_newly() {
             self.queue.push_back(node);
         }
     }
@@ -51,7 +51,7 @@ impl<N: NodeTypeId, V: Visitor<N>> Bfs<N, V> {
         let node = self.queue.pop_front()?;
 
         for neighbor in graph.neighbors(node) {
-            if self.discovered.visit(neighbor) {
+            if self.discovered.visit(neighbor).is_newly() {
                 self.queue.push_back(neighbor);
             }
         }
@@ -68,6 +68,6 @@ impl<G: Visit + Neighbors> Walker<G> for Bfs<G::NodeId, G::Visitor> {
     }
 }
 
-pub type BfsOf<G> = Bfs<<G as Base>::NodeId, <G as Visit>::Visitor>;
+pub type BfsOn<G> = Bfs<<G as Base>::NodeId, <G as Visit>::Visitor>;
 
-pub type BfsWalk<'g, G> = Walk<'g, G, BfsOf<G>>;
+pub type BfsWalk<'g, G> = Walk<'g, G, BfsOn<G>>;

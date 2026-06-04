@@ -1,0 +1,107 @@
+WHITESPACE    = _{ " " | "\t" | NEWLINE }
+QUOTE         = _{ "\"" }
+LESS          = _{ "<" }
+GREATER       = _{ ">" }
+ESCAPED_QUOTE = _{ "\\\"" }
+UNDERSCORE    = _{ "_" }
+DOT           = _{ "." }
+DASH          = _{ "-" }
+ZERO          = _{ "0" }
+OPEN          = _{ "{" }
+CLOSE         = _{ "}" }
+OPEN_LIST     = _{ "[" }
+CLOSE_LIST    = _{ "]" }
+SEMICOLON     = _{ ";" }
+COMMA         = _{ "," }
+EQUAL         = _{ "=" }
+COLON         = _{ ":" }
+
+NOT_QUOTE = _{ !QUOTE ~ ANY }
+
+UNDIRECTED_ARROW = _{ "--" }
+DIRECTED_ARROW   = _{ "->" }
+
+ARROW = _{ UNDIRECTED_ARROW | DIRECTED_ARROW }
+
+PREPROCESSOR   = _{ "#" }
+OPEN_COMMENT   = _{ "/*" }
+CLOSE_COMMENT  = _{ "*/" }
+INLINE_COMMENT = _{ "//" }
+
+strict  = { "strict" }
+graph   = { "graph" }
+digraph = { "digraph" }
+node    = { "node" }
+edge    = { "edge" }
+
+SUBGRAPH = _{ "subgraph" }
+
+string = { (ESCAPED_QUOTE | NOT_QUOTE)* }
+
+quote = { QUOTE }
+
+quoted = { quote ~ string ~ quote }
+
+keyword = { strict | graph | digraph | node | edge | SUBGRAPH }
+
+identifier = {
+    !(keyword ~ WHITESPACE) ~ (ASCII_ALPHA | UNDERSCORE) ~ (ASCII_ALPHANUMERIC | UNDERSCORE)*
+}
+
+// TODO: update this
+html = { LESS ~ GREATER }
+
+number = {
+    DASH? ~ (((ZERO) | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) ~ (DOT ~ ASCII_DIGIT+)? | (DOT ~ ASCII_DIGIT+))
+}
+
+id = ${ identifier | number | quoted | html }
+
+dotfile = { SOI ~ dotgraph+ ~ &EOI }
+
+dotgraph = { strict? ~ (graph | digraph) ~ id? ~ OPEN ~ statements ~ CLOSE }
+
+statements = { (statement ~ SEMICOLON?)* }
+
+statement = { edge_statement | attribute_statement | attribute | node_statement | subgraph }
+
+attribute_statement = { (graph | node | edge) ~ attributes }
+
+attributes = { (OPEN_LIST ~ attribute_list ~ CLOSE_LIST)+ }
+
+attribute_list = { (attribute ~ (SEMICOLON | COMMA)?)+ }
+
+attribute = { id ~ EQUAL ~ id }
+
+edge_statement = { item ~ next ~ attributes? }
+
+item = { (subgraph | node_id) }
+next = { ARROW ~ item ~ next? }
+
+node_statement = { node_id ~ attributes? }
+node_id        = { id ~ port? }
+
+port = { (COLON ~ compass) | (COLON ~ id ~ (COLON ~ compass)?) }
+
+subgraph = { SUBGRAPH? ~ id? ~ OPEN ~ statements ~ CLOSE }
+
+compass = { n | ne | e | se | s | sw | w | nw | c | unspecified }
+
+n           = { "n" }
+ne          = { "ne" }
+e           = { "e" }
+se          = { "se" }
+s           = { "s" }
+sw          = { "sw" }
+w           = { "w" }
+nw          = { "nw" }
+c           = { "c" }
+unspecified = { UNDERSCORE }
+
+inline_comment = _{ INLINE_COMMENT ~ (!NEWLINE ~ ANY)* }
+block_comment  = _{ OPEN_COMMENT ~ (!CLOSE_COMMENT ~ ANY)* ~ CLOSE_COMMENT }
+preprocessor   = _{ preprocessor_start ~ (!NEWLINE ~ ANY)* }
+
+preprocessor_start = @{ (SOI | NEWLINE) ~ PREPROCESSOR }
+
+COMMENT = _{ inline_comment | block_comment | preprocessor }

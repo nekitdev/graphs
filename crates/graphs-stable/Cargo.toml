@@ -11,6 +11,12 @@ repository.workspace = true
 license.workspace = true
 keywords = ["graph", "data-structure"]
 
+[dependencies.graphs-assert]
+workspace = true
+
+[dependencies.graphs-common]
+workspace = true
+
 [dependencies.graphs-core]
 workspace = true
 

@@ -1,23 +1,35 @@
-use core::marker::PhantomData;
-
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
+use core::{cmp::max, marker::PhantomData};
+
+use graphs_common::index::{EdgeIndex, NodeIndex};
 use graphs_core::{
     base::Base,
+    build::{RecoverableNode, TryAddNodes},
     capacity::{Capacities, EdgeCapacity, NodeCapacity},
+    cardinality::{Cardinality, Order, Size},
     clear::{Clear, ClearEdges},
-    count::{Counts, EdgeCount, NodeCount},
     create::Create,
     data::{Data, DataMut, DataRef},
-    index::{DefaultUntypedIndex, EdgeIndex, Index, NodeIndex, UntypedIndex},
+    identifiers::{EdgeIdentifiers, NodeIdentifiers},
+    index::{DefaultUntypedIndex, Index, UntypedIndex},
     indexed::{EdgeIndexed, NodeIndexed},
     kinds::{DefaultKind, Kind},
     loops::{DefaultLoop, Loop},
+    nodes::NodeIn,
+    recoverable_return,
+    references::{EdgeReferences, NodeReferences},
+    specs::Specs,
     types::{DefaultType, Type},
 };
 
-use crate::parts::{Connection, Edge, Node};
+use crate::{
+    errors::{IndexError, node_index},
+    indices::{EdgeIndices, NodeIndices},
+    parts::{Connection, Edge, EdgeMutSlice, EdgeSlice, Node, NodeMutSlice, NodeSlice},
+    references::{EdgeRef, EdgeRefIterator, NodeRef, NodeRefIterator},
+};
 
 /// Represents generic graphs.
 pub struct GenericGraph<
@@ -30,9 +42,7 @@ pub struct GenericGraph<
 > {
     pub(crate) nodes: Vec<Node<N, I>>,
     pub(crate) edges: Vec<Edge<E, I, K>>,
-    kind_marker: PhantomData<K>,
-    type_marker: PhantomData<T>,
-    loop_marker: PhantomData<L>,
+    specs: PhantomData<Specs<K, T, L>>,
 }
 
 impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> Default for GenericGraph<N, E, I, K, T, L> {
@@ -86,37 +96,33 @@ impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> Data for GenericGraph<N, 
 
 impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> DataRef for GenericGraph<N, E, I, K, T, L> {
     fn node_value(&self, id: Self::NodeId) -> Option<&Self::NodeValue> {
-        self.node(id).map(|node| &node.value)
+        self.node(id).map(|node| node.value())
     }
 
     fn edge_value(&self, id: Self::EdgeId) -> Option<&Self::EdgeValue> {
-        self.edge(id).map(|edge| &edge.value)
+        self.edge(id).map(|edge| edge.value())
     }
 }
 
 impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> DataMut for GenericGraph<N, E, I, K, T, L> {
     fn node_value_mut(&mut self, id: Self::NodeId) -> Option<&mut Self::NodeValue> {
-        self.node_mut(id).map(|node| &mut node.value)
+        self.node_mut(id).map(|node| node.value_mut())
     }
 
     fn edge_value_mut(&mut self, id: Self::EdgeId) -> Option<&mut Self::EdgeValue> {
-        self.edge_mut(id).map(|edge| &mut edge.value)
+        self.edge_mut(id).map(|edge| edge.value_mut())
     }
 }
 
-impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> NodeCount
-    for GenericGraph<N, E, I, K, T, L>
-{
-    fn node_count(&self) -> usize {
-        self.node_count()
+impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> Order for GenericGraph<N, E, I, K, T, L> {
+    fn order(&self) -> usize {
+        self.order()
     }
 }
 
-impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> EdgeCount
-    for GenericGraph<N, E, I, K, T, L>
-{
-    fn edge_count(&self) -> usize {
-        self.edge_count()
+impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> Size for GenericGraph<N, E, I, K, T, L> {
+    fn size(&self) -> usize {
+        self.size()
     }
 }
 
@@ -140,11 +146,19 @@ impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> NodeIndexed
     for GenericGraph<N, E, I, K, T, L>
 {
     fn node_bound(&self) -> usize {
-        self.node_count()
+        self.order()
+    }
+
+    fn try_node_index(&self, id: Self::NodeId) -> Option<usize> {
+        id.try_index()
     }
 
     fn node_index(&self, id: Self::NodeId) -> usize {
         id.index()
+    }
+
+    fn try_node_id(&self, index: usize) -> Option<Self::NodeId> {
+        Self::NodeId::try_of(index)
     }
 
     fn node_id(&self, index: usize) -> Self::NodeId {
@@ -156,11 +170,19 @@ impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> EdgeIndexed
     for GenericGraph<N, E, I, K, T, L>
 {
     fn edge_bound(&self) -> usize {
-        self.edge_count()
+        self.size()
+    }
+
+    fn try_edge_index(&self, id: Self::EdgeId) -> Option<usize> {
+        id.try_index()
     }
 
     fn edge_index(&self, id: Self::EdgeId) -> usize {
         id.index()
+    }
+
+    fn try_edge_id(&self, index: usize) -> Option<Self::EdgeId> {
+        Self::EdgeId::try_of(index)
     }
 
     fn edge_id(&self, index: usize) -> Self::EdgeId {
@@ -173,26 +195,24 @@ impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> GenericGraph<N, E, I, K, 
         Self {
             nodes: Vec::new(),
             edges: Vec::new(),
-            kind_marker: PhantomData,
-            type_marker: PhantomData,
-            loop_marker: PhantomData,
+            specs: PhantomData,
         }
     }
 
-    pub const fn node_count(&self) -> usize {
+    pub const fn order(&self) -> usize {
         self.nodes.len()
     }
 
-    pub const fn edge_count(&self) -> usize {
+    pub const fn size(&self) -> usize {
         self.edges.len()
     }
 
-    pub const fn count(&self) -> Counts {
-        Counts::new(self.node_count(), self.edge_count())
+    pub const fn cardinality(&self) -> Cardinality {
+        Cardinality::new(self.order(), self.size())
     }
 
     pub const fn is_null(&self) -> bool {
-        self.count().is_null()
+        self.cardinality().is_zero()
     }
 
     pub const fn node_capacity(&self) -> usize {
@@ -206,6 +226,22 @@ impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> GenericGraph<N, E, I, K, 
     pub const fn capacity(&self) -> Capacities {
         Capacities::new(self.node_capacity(), self.edge_capacity())
     }
+
+    pub(crate) const fn nodes_ref(&self) -> NodeSlice<'_, N, I> {
+        self.nodes.as_slice()
+    }
+
+    pub(crate) const fn nodes_mut(&mut self) -> NodeMutSlice<'_, N, I> {
+        self.nodes.as_mut_slice()
+    }
+
+    pub(crate) const fn edges_ref(&self) -> EdgeSlice<'_, E, I, K> {
+        self.edges.as_slice()
+    }
+
+    pub(crate) const fn edges_mut(&mut self) -> EdgeMutSlice<'_, E, I, K> {
+        self.edges.as_mut_slice()
+    }
 }
 
 impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> GenericGraph<N, E, I, K, T, L> {
@@ -213,27 +249,170 @@ impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> GenericGraph<N, E, I, K, 
         Self {
             nodes: Vec::with_capacity(capacities.nodes),
             edges: Vec::with_capacity(capacities.edges),
-            kind_marker: PhantomData,
-            type_marker: PhantomData,
-            loop_marker: PhantomData,
+            specs: PhantomData,
         }
     }
 }
 
 impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> GenericGraph<N, E, I, K, T, L> {
-    pub(crate) fn node(&self, index: NodeIndex<I>) -> Option<&Node<N, I>> {
-        self.nodes.get(index.index())
+    pub const fn node_indices(&self) -> NodeIndices<I> {
+        NodeIndices::new(self.order())
     }
 
-    pub(crate) fn edge(&self, index: EdgeIndex<I>) -> Option<&Edge<E, I, K>> {
-        self.edges.get(index.index())
+    pub const fn edge_indices(&self) -> EdgeIndices<I> {
+        EdgeIndices::new(self.size())
     }
 
-    pub(crate) fn node_mut(&mut self, index: NodeIndex<I>) -> Option<&mut Node<N, I>> {
-        self.nodes.get_mut(index.index())
+    pub(crate) fn node(&self, id: NodeIndex<I>) -> Option<&Node<N, I>> {
+        self.nodes.get(id.index())
     }
 
-    pub(crate) fn edge_mut(&mut self, index: EdgeIndex<I>) -> Option<&mut Edge<E, I, K>> {
-        self.edges.get_mut(index.index())
+    pub(crate) fn node_mut(&mut self, id: NodeIndex<I>) -> Option<&mut Node<N, I>> {
+        self.nodes.get_mut(id.index())
+    }
+
+    pub(crate) fn edge(&self, id: EdgeIndex<I>) -> Option<&Edge<E, I, K>> {
+        self.edges.get(id.index())
+    }
+
+    pub(crate) fn edge_mut(&mut self, id: EdgeIndex<I>) -> Option<&mut Edge<E, I, K>> {
+        self.edges.get_mut(id.index())
+    }
+
+    pub(crate) fn node_twice_mut(
+        &mut self,
+        one: NodeIndex<I>,
+        two: NodeIndex<I>,
+    ) -> Option<MaybePair<&mut Node<N, I>>> {
+        get_twice_mut(self.nodes_mut(), one.index(), two.index())
+    }
+
+    pub(crate) unsafe fn node_pair_mut(
+        &mut self,
+        one: NodeIndex<I>,
+        two: NodeIndex<I>,
+    ) -> Pair<&mut Node<N, I>> {
+        unsafe { get_pair_mut(self.nodes_mut(), one.index(), two.index()) }
+    }
+}
+
+pub(crate) type Pair<T> = (T, T);
+
+pub(crate) enum MaybePair<T> {
+    Two(T, T),
+    One(T),
+}
+
+pub(crate) fn get_twice_mut<T>(
+    slice: &mut [T],
+    one_index: usize,
+    two_index: usize,
+) -> Option<MaybePair<&mut T>> {
+    let index = max(one_index, two_index);
+
+    if index < slice.len() {
+        if one_index == two_index {
+            let value = unsafe { slice.get_unchecked_mut(index) };
+
+            Some(MaybePair::One(value))
+        } else {
+            let (one, two) = unsafe { get_pair_mut(slice, one_index, two_index) };
+
+            Some(MaybePair::Two(one, two))
+        }
+    } else {
+        None
+    }
+}
+
+pub(crate) unsafe fn get_pair_mut<T>(
+    slice: &mut [T],
+    one_index: usize,
+    two_index: usize,
+) -> Pair<&mut T> {
+    let [one, two] = unsafe { slice.get_disjoint_unchecked_mut([one_index, two_index]) };
+
+    (one, two)
+}
+
+impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> NodeIdentifiers
+    for GenericGraph<N, E, I, K, T, L>
+{
+    type NodeIdIterator<'g>
+        = NodeIndices<I>
+    where
+        Self: 'g;
+
+    fn node_identifiers(&self) -> Self::NodeIdIterator<'_> {
+        self.node_indices()
+    }
+}
+
+impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> EdgeIdentifiers
+    for GenericGraph<N, E, I, K, T, L>
+{
+    type EdgeIdIterator<'g>
+        = EdgeIndices<I>
+    where
+        Self: 'g;
+
+    fn edge_identifiers(&self) -> Self::EdgeIdIterator<'_> {
+        self.edge_indices()
+    }
+}
+
+impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> NodeReferences
+    for GenericGraph<N, E, I, K, T, L>
+{
+    type NodeRef<'g>
+        = NodeRef<'g, N, I>
+    where
+        Self: 'g;
+
+    type NodeRefIterator<'g>
+        = NodeRefIterator<'g, N, I>
+    where
+        Self: 'g;
+
+    fn node_references(&self) -> Self::NodeRefIterator<'_> {
+        Self::NodeRefIterator::new(self.nodes.iter().enumerate())
+    }
+}
+
+impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> EdgeReferences
+    for GenericGraph<N, E, I, K, T, L>
+{
+    type EdgeRef<'g>
+        = EdgeRef<'g, E, I, K>
+    where
+        Self: 'g;
+
+    type EdgeRefIterator<'g>
+        = EdgeRefIterator<'g, E, I, K>
+    where
+        Self: 'g;
+
+    fn edge_references(&self) -> Self::EdgeRefIterator<'_> {
+        Self::EdgeRefIterator::new(self.edges.iter().enumerate())
+    }
+}
+
+impl<N, E, I: UntypedIndex, K: Kind, T: Type, L: Loop> TryAddNodes
+    for GenericGraph<N, E, I, K, T, L>
+{
+    type Error = IndexError<I>;
+
+    fn try_add_node(&mut self, node: NodeIn<Self>) -> RecoverableNode<Self> {
+        let value = node.get();
+
+        let order = self.order();
+
+        let id = recoverable_return!(node_index(order), value);
+
+        let node = Node::new(value);
+
+        self.nodes.push(node);
+
+        Ok(id)
     }
 }

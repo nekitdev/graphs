@@ -15,6 +15,7 @@ impl<G: Directed> Base for Undirected<G> {
     type Connection = <G::Connection as Connection>::Inverse;
 
     type Kind = <G::Kind as Kind>::Inverse;
+
     type Type = G::Type;
     type Loop = G::Loop;
 }
@@ -24,11 +25,11 @@ impl<G: Directed> Undirected<G> {
         Self { graph }
     }
 
-    pub const fn get_ref(&self) -> &G {
+    pub const fn directed(&self) -> &G {
         &self.graph
     }
 
-    pub const fn get_mut(&mut self) -> &mut G {
+    pub const fn directed_mut(&mut self) -> &mut G {
         &mut self.graph
     }
 

@@ -1,0 +1,29 @@
+[package]
+name = "graphs-assert"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Assertions on graphs."
+documentation = "https://docs.rs/graphs-assert"
+repository.workspace = true
+license.workspace = true
+keywords = ["graph", "assert"]
+
+[lib]
+proc-macro = true
+
+[dependencies.graphs-core]
+workspace = true
+
+[dependencies.proc-macro2]
+workspace = true
+features = ["proc-macro"]
+
+[dependencies.quote]
+workspace = true
+features = ["proc-macro"]
+
+[dependencies.syn]
+workspace = true
+features = ["parsing", "printing", "proc-macro", "full", "visit"]

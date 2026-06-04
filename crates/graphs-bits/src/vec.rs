@@ -176,6 +176,14 @@ impl<B: BitBlock> BitVec<B> {
         self.storage.shrink_to_fit();
     }
 
+    pub fn get_mut(&mut self, bit: usize) -> BitMut<'_, B> {
+        todo!()
+    }
+
+    pub fn contains(&self, bit: usize) -> bool {
+        todo!()
+    }
+
     // pub fn get<I: BitIndex<Self>>(&self, index: I) -> Option<&I::Output> {
     //     index.get(self)
     // }
@@ -190,6 +198,29 @@ impl<B: BitBlock> BitVec<B> {
 
     // pub unsafe fn get_unchecked_mut<I: BitIndex<Self>>(&self, index: I) -> &mut I::Output {
     //     todo!()
+    // }
+}
+
+pub struct BitMut<'b, B: BitBlock> {
+    block: &'b mut B,
+    index: usize,
+}
+
+impl<'b, B: BitBlock> BitMut<'b, B> {
+    pub(crate) const fn new(block: &'b mut B, index: usize) -> Self {
+        Self { block, index }
+    }
+
+    pub fn get(&self) -> bool {
+        self.block.get(self.index)
+    }
+
+    // pub fn set(&mut self) {
+    //     self.block.set(self.index)
+    // }
+
+    // pub fn toggle(&mut self) {
+    //     self.block.toggle(self.index)
     // }
 }
 

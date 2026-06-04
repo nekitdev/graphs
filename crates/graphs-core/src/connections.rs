@@ -1,182 +1,119 @@
-use core::{fmt, marker::PhantomData, mem::swap};
+//! Connections in graphs.
 
-use crate::kinds::{self, DefaultKind, Kind};
+use trait_aliases::trait_aliases;
 
-pub trait Connection: Sized {
-    type Item;
+use crate::{
+    direction::Direction,
+    id::NodeTypeId,
+    kinds::{Directed, Kind, Undirected},
+};
+
+/// Represents connections between nodes in graphs.
+pub trait Connection: Copy {
+    /// The associated type for node IDs.
+    type NodeId: NodeTypeId;
+
+    /// The associated type for the connection [`Kind`], either [`Directed`] or [`Undirected`].
+    ///
+    /// [`Directed`]: kinds::Directed
+    /// [`Undirected`]: kinds::Undirected
     type Kind: Kind;
 
-    type Inverse: Connection<Item = Self::Item, Kind = <Self::Kind as Kind>::Inverse>;
+    /// The *inverse* type of this connection, which is any [`Connection`]
+    /// with the same [`NodeId`] type, but [`Kind`] being the [`Inverse`].
+    ///
+    /// [`NodeId`]: Self::NodeId
+    /// [`Kind`]: Self::Kind
+    /// [`Inverse`]: Kind::Inverse
+    type Inverse: Connection<NodeId = Self::NodeId, Kind = <Self::Kind as Kind>::Inverse>;
 
-    fn connecting(one: Self::Item, two: Self::Item) -> Self;
+    /// Constructs [`Self`] connecting the provided nodes.
+    fn connecting(one: Self::NodeId, two: Self::NodeId) -> Self;
 
-    fn parts(&self) -> (&Self::Item, &Self::Item);
+    /// Returns the *parts* of the connection.
+    fn parts(&self) -> Parts<Self>;
 
-    fn parts_mut(&mut self) -> (&mut Self::Item, &mut Self::Item);
+    /// Returns the *inverse* of this connection.
+    fn inverse(self) -> Self::Inverse;
 
-    fn into_parts(self) -> (Self::Item, Self::Item);
+    fn directed(&self, direction: Direction) -> Self::NodeId {
+        let (outgoing, incoming) = self.parts();
 
-    fn reverse(&mut self) {
-        let (one, two) = self.parts_mut();
-
-        swap(one, two);
+        match direction {
+            Direction::Outgoing => outgoing,
+            Direction::Incoming => incoming,
+        }
     }
 
-    fn invert(self) -> Self::Inverse {
-        let (one, two) = self.into_parts();
-
-        Self::Inverse::connecting(two, one)
-    }
-}
-
-pub trait Directed: Connection<Kind = kinds::Directed> {}
-pub trait Undirected: Connection<Kind = kinds::Undirected> {}
-
-impl<C: Connection<Kind = kinds::Directed>> Directed for C {}
-impl<C: Connection<Kind = kinds::Undirected>> Undirected for C {}
-
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-// pub struct DefaultDirected<T> {
-//     pub source: T,
-//     pub target: T,
-// }
-
-// impl<T: fmt::Display> fmt::Display for DefaultDirected<T> {
-//     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(
-//             formatter,
-//             "{source} -> {target}",
-//             source = self.source,
-//             target = self.target
-//         )
-//     }
-// }
-
-// impl<T> DefaultDirected<T> {
-//     pub const fn new(source: T, target: T) -> Self {
-//         Self { source, target }
-//     }
-
-//     pub const fn reverse(&mut self) {
-//         swap(&mut self.source, &mut self.target);
-//     }
-// }
-
-// impl<T> Connection for DefaultDirected<T> {
-//     type Item = T;
-//     type Kind = kinds::Directed;
-
-//     type Inverse = DefaultUndirected<T>;
-
-//     fn connecting(one: Self::Item, two: Self::Item) -> Self {
-//         Self::new(one, two)
-//     }
-
-//     fn parts(&self) -> (&Self::Item, &Self::Item) {
-//         (&self.source, &self.target)
-//     }
-
-//     fn parts_mut(&mut self) -> (&mut Self::Item, &mut Self::Item) {
-//         (&mut self.source, &mut self.target)
-//     }
-
-//     fn into_parts(self) -> (Self::Item, Self::Item) {
-//         (self.source, self.target)
-//     }
-// }
-
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-// pub struct DefaultUndirected<T> {
-//     pub one: T,
-//     pub two: T,
-// }
-
-// impl<T: fmt::Display> fmt::Display for DefaultUndirected<T> {
-//     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(formatter, "{one} <-> {two}", one = self.one, two = self.two)
-//     }
-// }
-
-// impl<T> DefaultUndirected<T> {
-//     pub const fn new(one: T, two: T) -> Self {
-//         Self { one, two }
-//     }
-// }
-
-// impl<T> Connection for DefaultUndirected<T> {
-//     type Item = T;
-//     type Kind = kinds::Undirected;
-
-//     type Inverse = DefaultDirected<T>;
-
-//     fn connecting(one: Self::Item, two: Self::Item) -> Self {
-//         Self::new(one, two)
-//     }
-
-//     fn parts(&self) -> (&Self::Item, &Self::Item) {
-//         (&self.one, &self.two)
-//     }
-
-//     fn parts_mut(&mut self) -> (&mut Self::Item, &mut Self::Item) {
-//         (&mut self.one, &mut self.two)
-//     }
-
-//     fn into_parts(self) -> (Self::Item, Self::Item) {
-//         (self.one, self.two)
-//     }
-// }
-
-pub struct Kinded<T, K: Kind = DefaultKind> {
-    pub one: T,
-    pub two: T,
-    kind: PhantomData<K>,
-}
-
-impl<T: fmt::Display, K: Kind> fmt::Display for Kinded<T, K> {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// Checks whether the connection is looped, that is, connects some node to itself.
+    fn is_loop(&self) -> bool {
         let (one, two) = self.parts();
 
-        if K::DIRECTED {
-            write!(formatter, "{one} -> {two}")
-        } else {
-            write!(formatter, "{one} <-> {two}")
-        }
+        one == two
     }
 }
 
-impl<T, K: Kind> Kinded<T, K> {
-    pub const fn new(one: T, two: T) -> Self {
-        Self {
-            one,
-            two,
-            kind: PhantomData,
-        }
+/// Represents the *parts* of the given [`Connection`] of type `C`.
+///
+/// This is simply the `(C::NodeId, C::NodeId)` tuple.
+pub type Parts<C> = (<C as Connection>::NodeId, <C as Connection>::NodeId);
+
+trait_aliases! {
+    /// Represents *directed* connections.
+    ///
+    /// Implemented for any [`Connection`] with [`Kind`] set to [`Directed`].
+    ///
+    /// [`Kind`]: Connection::Kind
+    #[trait_alias(C)]
+    pub trait DirectedConnection = Connection<Kind = Directed>;
+
+    /// Represents *undirected* connections.
+    ///
+    /// Implemented for any [`Connection`] with [`Kind`] set to [`Undirected`].
+    ///
+    /// [`Kind`]: Connection::Kind
+    #[trait_alias(C)]
+    pub trait UndirectedConnection = Connection<Kind = Undirected>;
+}
+
+/// Represents connections that can be reversed.
+pub trait ReverseConnection: DirectedConnection {
+    /// Reverses the direction of the connection.
+    fn reverse(&mut self);
+}
+
+pub trait DirectedConnectionMethods: DirectedConnection {
+    fn source(&self) -> Self::NodeId {
+        let (source, _) = self.parts();
+
+        source
     }
 
-    pub const fn reverse(&mut self) {
-        swap(&mut self.one, &mut self.two);
+    fn target(&self) -> Self::NodeId {
+        let (_, target) = self.parts();
+
+        target
+    }
+
+    fn reversed(&self) -> Self {
+        let (source, target) = self.parts();
+
+        Self::connecting(target, source)
     }
 }
 
-impl<T, K: Kind> Connection for Kinded<T, K> {
-    type Item = T;
-    type Kind = K;
+pub trait UndirectedConnectionMethods: UndirectedConnection {
+    fn one(&self) -> Self::NodeId {
+        let (one, _) = self.parts();
 
-    type Inverse = Kinded<T, <K as Kind>::Inverse>;
-
-    fn connecting(one: Self::Item, two: Self::Item) -> Self {
-        Self::new(one, two)
+        one
     }
 
-    fn parts(&self) -> (&Self::Item, &Self::Item) {
-        (&self.one, &self.two)
-    }
+    fn two(&self) -> Self::NodeId {
+        let (_, two) = self.parts();
 
-    fn parts_mut(&mut self) -> (&mut Self::Item, &mut Self::Item) {
-        (&mut self.one, &mut self.two)
-    }
-
-    fn into_parts(self) -> (Self::Item, Self::Item) {
-        (self.one, self.two)
+        two
     }
 }
+
+impl<C: DirectedConnection> DirectedConnectionMethods for C {}

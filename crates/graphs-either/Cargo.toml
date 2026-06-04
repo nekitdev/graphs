@@ -1,0 +1,27 @@
+[package]
+name = "graphs-either"
+version.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+description = "Enumerations of either nodes or edges."
+documentation = "https://docs.rs/graphs-either"
+readme = "README.md"
+repository.workspace = true
+license.workspace = true
+keywords = ["graph", "either"]
+
+[dependencies.serde]
+workspace = true
+optional = true
+
+[features]
+# TODO: add "std" here
+default = ["serde"]
+serde = ["dep:serde"]
+std = ["serde?/std"]
+alloc = ["serde?/alloc"]
+
+[package.metadata.docs.rs]
+features = ["serde"]
+rustdoc-args = ["--cfg", "docsrs"]

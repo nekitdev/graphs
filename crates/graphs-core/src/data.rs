@@ -2,6 +2,11 @@
 
 use crate::base::Base;
 
+use graphs_either::{
+    either::{Either, EitherMut, EitherRef},
+    map_either,
+};
+
 /// Represents graphs that contain data.
 pub trait Data: Base {
     /// The associated type of node values.
@@ -21,6 +26,11 @@ impl<G: Data + ?Sized> Data for &mut G {
     type EdgeValue = G::EdgeValue;
 }
 
+pub type IdOf<G> = Either<<G as Base>::NodeId, <G as Base>::EdgeId>;
+
+pub type ValueRefOf<'a, G> = EitherRef<'a, <G as Data>::NodeValue, <G as Data>::EdgeValue>;
+pub type ValueMutOf<'a, G> = EitherMut<'a, <G as Data>::NodeValue, <G as Data>::EdgeValue>;
+
 /// Represents graphs that can map their node and edge identifiers to values by reference.
 pub trait DataRef: Data {
     /// Returns the node value corresponding to the given identifier, if any.
@@ -29,14 +39,14 @@ pub trait DataRef: Data {
     /// Returns the edge value corresponding to the given identifier, if any.
     fn edge_value(&self, id: Self::EdgeId) -> Option<&Self::EdgeValue>;
 
-    // fn value(&self, self_id: IdOf<Self>) -> Option<ValueRefOf<'_, Self>> {
-    //     map_item!(
-    //         self_id,
-    //         node_id => self.node_value(node_id),
-    //         edge_id => self.edge_value(edge_id),
-    //     )
-    //     .factor_none()
-    // }
+    fn value(&self, id: IdOf<Self>) -> Option<ValueRefOf<'_, Self>> {
+        map_either!(
+            id,
+            node_id => self.node_value(node_id),
+            edge_id => self.edge_value(edge_id),
+        )
+        .factor_none()
+    }
 }
 
 impl<G: DataRef + ?Sized> DataRef for &G {
@@ -67,14 +77,14 @@ pub trait DataMut: DataRef {
     /// Returns the mutable edge value corresponding to the given identifier, if any.
     fn edge_value_mut(&mut self, id: Self::EdgeId) -> Option<&mut Self::EdgeValue>;
 
-    // fn value_mut(&mut self, self_id: IdOf<Self>) -> Option<ValueMutOf<'_, Self>> {
-    //     map_item!(
-    //         self_id,
-    //         node_id => self.node_value_mut(node_id),
-    //         edge_id => self.edge_value_mut(edge_id),
-    //     )
-    //     .factor_none()
-    // }
+    fn value_mut(&mut self, id: IdOf<Self>) -> Option<ValueMutOf<'_, Self>> {
+        map_either!(
+            id,
+            node_id => self.node_value_mut(node_id),
+            edge_id => self.edge_value_mut(edge_id),
+        )
+        .factor_none()
+    }
 }
 
 impl<G: DataMut + ?Sized> DataMut for &mut G {

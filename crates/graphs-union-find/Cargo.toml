@@ -17,6 +17,9 @@ workspace = true
 [dependencies.thiserror]
 workspace = true
 
+[dependencies.trait-aliases]
+workspace = true
+
 [features]
 # TODO: add "std" here
 default = []

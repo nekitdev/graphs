@@ -1,9 +1,9 @@
 //! Creating graphs.
 
-use crate::capacity::Capacities;
+use crate::{base::Base, capacity::Capacities};
 
 /// Represents graphs that can be created.
-pub trait Create {
+pub trait Create: Base {
     /// Constructs empty [`Self`].
     fn empty() -> Self;
 

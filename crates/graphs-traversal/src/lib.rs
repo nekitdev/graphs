@@ -3,6 +3,7 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 #[cfg(not(feature = "std"))]
+#[macro_use(vec)]
 extern crate alloc;
 
 pub mod bfs;

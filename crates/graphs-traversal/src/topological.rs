@@ -24,7 +24,7 @@ impl<N: NodeTypeId, V: Visitor<N>> Topological<N, V> {
             + NodeIdentifiers<NodeId = N>
             + DirectedNeighbors<NodeId = N>,
     {
-        let mut topological = Self::empty(&graph);
+        let mut topological = Self::empty(graph.by_ref());
 
         topological.prepare(graph);
 
@@ -60,7 +60,7 @@ impl<N: NodeTypeId, V: Visitor<N>> Topological<N, V> {
         graph: G,
     ) -> Option<N> {
         while let Some(node) = self.visit.pop() {
-            if self.ordered.visit(node) {
+            if self.ordered.visit(node).is_newly() {
                 for neighbor in graph.neighbors(node) {
                     if graph
                         .by_ref()
@@ -90,6 +90,6 @@ impl<G: Visit + NodeIdentifiers + DirectedNeighbors> Walker<G>
     }
 }
 
-pub type TopologicalOf<G> = Topological<<G as Base>::NodeId, <G as Visit>::Visitor>;
+pub type TopologicalOn<G> = Topological<<G as Base>::NodeId, <G as Visit>::Visitor>;
 
-pub type TopologicalWalk<'g, G> = Walk<'g, G, TopologicalOf<G>>;
+pub type TopologicalWalk<'g, G> = Walk<'g, G, TopologicalOn<G>>;

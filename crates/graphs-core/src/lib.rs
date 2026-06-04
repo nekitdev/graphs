@@ -1,6 +1,7 @@
 //! Core functionality for graphs.
 
 // #![deny(missing_docs)]
+#![forbid(unsafe_code)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
@@ -8,18 +9,16 @@
 extern crate alloc;
 
 pub mod adapters;
-pub mod algorithm;
+pub mod algorithms;
+pub mod attached;
 pub mod base;
 pub mod build;
 pub mod by;
 pub mod capacity;
+pub mod cardinality;
 pub mod clear;
-#[macro_use]
-pub mod control;
 pub mod connections;
-pub mod count;
 pub mod create;
-pub mod cycles;
 pub mod data;
 pub mod degree;
 pub mod direction;
@@ -33,21 +32,23 @@ pub mod id;
 pub mod identifiers;
 pub mod index;
 pub mod indexed;
-#[macro_use]
-pub mod items;
 pub mod kinds;
-pub mod limit;
 pub mod loops;
+pub mod map;
 pub mod markers;
 pub mod neighbors;
-pub mod next;
+pub mod nodes;
 #[macro_use]
 pub mod recoverable;
-pub mod recursive;
+pub mod references;
+pub mod reserve;
 pub mod reverse;
-pub mod select;
-pub mod size;
-pub mod time;
+pub mod sentinel;
+#[macro_use]
+pub mod specs;
+pub mod prelude;
+pub mod subgraph;
 pub mod types;
+pub mod update;
 pub mod visit;
 pub mod walk;

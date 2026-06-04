@@ -8,14 +8,12 @@
 extern crate alloc;
 
 pub mod directed;
+pub mod errors;
 pub mod generic;
+pub mod indices;
+pub mod parts;
+pub mod prelude;
+pub mod references;
 pub mod undirected;
 
-#[doc(inline)]
-pub use directed::{DiGraph, LoopedDiGraph, MultiDiGraph, PseudoDiGraph, SimpleDiGraph};
-#[doc(inline)]
-pub use generic::GenericGraph;
-#[doc(inline)]
-pub use undirected::{Graph, LoopedGraph, MultiGraph, PseudoGraph, SimpleGraph};
-
-pub(crate) mod parts;
+pub(crate) mod internals;

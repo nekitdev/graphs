@@ -1,0 +1,33 @@
+[package]
+name = "graphs-common"
+version.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+description = "Common functionality for implementing graphs."
+documentation = "https://docs.rs/graphs-common"
+readme = "README.md"
+repository.workspace = true
+license.workspace = true
+keywords = ["graph", "common"]
+
+[dependencies.serde]
+workspace = true
+optional = true
+
+[dependencies.thiserror]
+workspace = true
+
+[dependencies.graphs-core]
+workspace = true
+
+[features]
+# TODO: add "std" here
+default = ["serde"]
+serde = ["dep:serde"]
+std = ["serde?/std"]
+alloc = ["serde?/alloc"]
+
+[package.metadata.docs.rs]
+features = ["serde"]
+rustdoc-args = ["--cfg", "docsrs"]

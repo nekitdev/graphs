@@ -6,22 +6,22 @@ use graphs_core::{
 };
 
 use crate::{
-    bfs::{Bfs, BfsOf, BfsWalk},
-    dfs::{Dfs, DfsOf, DfsWalk},
-    dfs_post_order::{DfsPostOrder, DfsPostOrderOf, DfsPostOrderWalk},
-    topological::{Topological, TopologicalOf, TopologicalWalk},
+    bfs::{Bfs, BfsOn, BfsWalk},
+    dfs::{Dfs, DfsOn, DfsWalk},
+    dfs_post_order::{DfsPostOrder, DfsPostOrderOn, DfsPostOrderWalk},
+    topological::{Topological, TopologicalOn, TopologicalWalk},
 };
 
 pub trait Traverse: Visit {
-    fn dfs(&self, start: Self::NodeId) -> DfsOf<Self> {
+    fn dfs(&self, start: Self::NodeId) -> DfsOn<Self> {
         Dfs::new(self, start)
     }
 
-    fn dfs_post_order(&self, start: Self::NodeId) -> DfsPostOrderOf<Self> {
+    fn dfs_post_order(&self, start: Self::NodeId) -> DfsPostOrderOn<Self> {
         DfsPostOrder::new(self, start)
     }
 
-    fn bfs(&self, start: Self::NodeId) -> BfsOf<Self> {
+    fn bfs(&self, start: Self::NodeId) -> BfsOn<Self> {
         Bfs::new(self, start)
     }
 }
@@ -45,7 +45,7 @@ pub trait TraverseWalk: Traverse + Neighbors + Sized {
 impl<G: Traverse + Neighbors> TraverseWalk for G {}
 
 pub trait TraverseTopological: Visit + NodeIdentifiers + DirectedNeighbors {
-    fn topological(&self) -> TopologicalOf<Self> {
+    fn topological(&self) -> TopologicalOn<Self> {
         Topological::new(self)
     }
 }

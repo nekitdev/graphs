@@ -5,8 +5,10 @@
 #[macro_use(vec)]
 extern crate alloc;
 
+pub mod key;
 pub mod rank;
 pub mod vec;
 
+pub use key::{AnyError, DefaultKey, Error, IndexError, Key, KeyError, OutOfBoundsError};
 pub use rank::{Rank, ZERO};
 pub use vec::UnionFind;

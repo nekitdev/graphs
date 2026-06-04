@@ -1,4 +1,6 @@
-pub trait Clear {
+use crate::base::Base;
+
+pub trait Clear: Base {
     fn clear(&mut self);
 }
 

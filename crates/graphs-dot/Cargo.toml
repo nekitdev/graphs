@@ -1,0 +1,28 @@
+[package]
+name = "graphs-dot"
+version.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+description = "Implementation of the DOT language."
+documentation = "https://docs.rs/graphs-dot"
+readme = "README.md"
+repository.workspace = true
+license.workspace = true
+keywords = ["graph", "dot"]
+
+[dependencies.graphs-dot-macros]
+workspace = true
+optional = true
+
+[dependencies.graphs-dot-parser]
+workspace = true
+optional = true
+
+[features]
+default = ["macros", "parser"]
+parser = ["graphs-dot-parser"]
+macros = ["graphs-dot-macros"]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]

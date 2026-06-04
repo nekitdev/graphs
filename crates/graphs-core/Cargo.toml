@@ -11,14 +11,27 @@ repository.workspace = true
 license.workspace = true
 keywords = ["graph", "core"]
 
+[dependencies.serde]
+workspace = true
+optional = true
+
+[dependencies.bon]
+workspace = true
+
 [dependencies.thiserror]
+workspace = true
+
+[dependencies.trait-aliases]
+workspace = true
+
+[dependencies.graphs-either]
 workspace = true
 
 [features]
 # TODO: add "std" here
-default = []
-std = []
-alloc = []
+default = ["serde"]
+serde = ["dep:serde"]
+std = ["serde?/std"]
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

@@ -1,32 +1,52 @@
 //! Graph visiting traits and visitors.
 
-use crate::{
-    base::Base,
-    id::{DefaultNodeId, NodeTypeId},
-};
+use crate::{base::Base, id::NodeTypeId};
+
+/// Represents the output as returned by [`visit`] and [`unvisit`].
+///
+/// [`visit`]: Visitor::visit
+/// [`unvisit`]: Visitor::unvisit
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Output {
+    /// The node was *previously* (un)visited.
+    Previously,
+
+    /// The node was *newly* (un)visited.
+    Newly,
+}
+
+impl Output {
+    /// Checks whether the output is [`Previously`].
+    ///
+    /// [`Previously`]: Self::Previously
+    pub const fn is_previously(self) -> bool {
+        matches!(self, Self::Previously)
+    }
+
+    /// Checks whether the output is [`Newly`].
+    ///
+    /// [`Newly`]: Self::Newly
+    pub const fn is_newly(self) -> bool {
+        matches!(self, Self::Newly)
+    }
+}
 
 /// Represents visitors that can traverse graphs.
 ///
-/// Visitors are generic over the node [`Id`] type that they can work with.
-///
-/// [`Id`]: crate::id::Id
-pub trait Visitor<N: NodeTypeId = DefaultNodeId> {
+/// Visitors are generic over the [`NodeTypeId`] type that they can work with.
+pub trait Visitor<N: NodeTypeId> {
     /// Visits the node with the given ID.
-    ///
-    /// Returns [`false`] if the node was visited previously, otherwise returns [`true`].
-    fn visit(&mut self, node: N) -> bool;
+    fn visit(&mut self, node: N) -> Output;
 
     /// Checks if the node with the given ID was visited previously.
     fn was_visited(&self, node: N) -> bool;
 
     /// Unvisits the node with the given ID.
-    ///
-    /// Returns [`true`] if the node was visited previously, otherwise returns [`false`].
-    fn unvisit(&mut self, node: N) -> bool;
+    fn unvisit(&mut self, node: N) -> Output;
 }
 
 impl<N: NodeTypeId, V: Visitor<N>> Visitor<N> for &mut V {
-    fn visit(&mut self, node: N) -> bool {
+    fn visit(&mut self, node: N) -> Output {
         (*self).visit(node)
     }
 
@@ -34,7 +54,7 @@ impl<N: NodeTypeId, V: Visitor<N>> Visitor<N> for &mut V {
         (**self).was_visited(node)
     }
 
-    fn unvisit(&mut self, node: N) -> bool {
+    fn unvisit(&mut self, node: N) -> Output {
         (*self).unvisit(node)
     }
 }

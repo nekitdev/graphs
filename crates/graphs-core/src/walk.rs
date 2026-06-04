@@ -1,6 +1,96 @@
-//! Walkers are iterators with context.
+//! Walkers are iterators which have context supplied to them.
+//!
+//! This allows, for one, traversing graphs without holding onto their borrow longer than needed.
+//!
+//! For instance, instead of defining depth-first search like this:
+//!
+//! ```
+//! use graphs_core::{
+//!     neighbors::Neighbors,
+//!     visit::{Visit, Visitor},
+//! };
+//!
+//! struct Dfs<'g, G: Visit> {
+//!     graph: &'g G,
+//!     stack: Vec<G::NodeId>,
+//!     discovery: G::Visitor,
+//! }
+//!
+//! impl<'g, G: Visit> Dfs<'g, G> {
+//!     fn new(graph: &'g G, start: N) -> Self {
+//!         let stack = vec![start];
+//!
+//!         let discovery = graph.build_visitor();
+//!
+//!         Self { graph, stack, discovery }
+//!     }
+//! }
+//!
+//! impl<'g, G: Visit + Neighbors> Iterator for Dfs<'g, G> {
+//!     type Item = G::NodeId;
+//!
+//!     fn next(&mut self) -> Option<Self::Item> {
+//!         while let Some(node) = self.stack.pop() {
+//!             if self.discovery.visit(node).is_newly() {
+//!                 for neighbor in self.graph.neighbors(node) {
+//!                     if !self.discovery.was_visited(neighbor) {
+//!                         self.stack.push(neighbor);
+//!                     }
+//!                 }
+//!
+//!                 return Some(node);
+//!             }
+//!         }
+//!
+//!         None
+//!     }
+//! }
+//! ```
+//!
+//! we can avoid having to hold onto the borrow like so:
+//!
+//! ```
+//! use graphs_core::{
+//!     base::Base,
+//!     id::NodeTypeId,
+//!     neighbors::Neighbors,
+//!     visit::{Visit, Visitor},
+//!     walk::{Walk, Walker},
+//! };
+//!
+//! struct Dfs<N: NodeTypeId, V: Visitor<N>> {
+//!     stack: Vec<N>,
+//!     discovered: V,
+//! }
+//!
+//! type DfsOn<G> = Dfs<<G as Base>::NodeId, <G as Visit>::Visitor>;
+//!
+//! impl<G: Visit + Neighbors> Walker<G> for DfsOn<G> {
+//!     type Item = G::NodeId;
+//!
+//!     fn walk_next(&mut self, graph: &G) -> Option<Self::Item> {
+//!         while let Some(node) = self.stack.pop() {
+//!             if self.discovered.visit(node) {
+//!                 for neighbor in graph.neighbors(node) {
+//!                     if !self.discovered.was_visited(neighbor) {
+//!                         self.stack.push(neighbor);
+//!                     }
+//!                 }
+//!
+//!                 return Some(node);
+//!             }
+//!         }
+//!
+//!         None
+//!     }
+//! }
+//!
+//! type DfsWalk<'g, G> = Walk<'g, G, DfsOn<G>>;
+//! ```
 
-/// Represents walkers that can traverse some structure with the context `C`.
+/// Represents *walkers*. See [module] documentation for more information.
+///
+/// [module]: self
 pub trait Walker<C: ?Sized> {
     /// The type of items yielded by the walker.
     type Item;
@@ -30,7 +120,7 @@ impl<C: ?Sized, W: Walker<C> + ?Sized> Walker<C> for &mut W {
 /// Represents iterators holding walkers and their relevant context.
 ///
 /// The implementation of [`Iterator`] for this struct is as trivial as simply calling [`walk_next`]
-/// on the contained walker, providing the context to it.
+/// on the contained walker and providing the contained context to it.
 ///
 /// [`walk_next`]: Walker::walk_next
 pub struct Walk<'c, C: ?Sized, W: Walker<C>> {

@@ -1,0 +1,49 @@
+[package]
+name = "graphs-dot-parser"
+version.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+description = "DOT parser implementation."
+documentation = "https://docs.rs/graphs-dot-parser"
+readme = "README.md"
+repository.workspace = true
+license.workspace = true
+keywords = ["graph", "dot"]
+
+[dependencies.non-empty-slice]
+workspace = true
+features = ["std", "ownership"]
+
+[dependencies.ownership]
+workspace = true
+features = ["std", "derive"]
+
+[dependencies.proc-macro2]
+workspace = true
+optional = true
+
+[dependencies.quote]
+workspace = true
+optional = true
+
+[dependencies.pest]
+workspace = true
+features = ["std"]
+
+[dependencies.pest_derive]
+workspace = true
+features = ["std"]
+
+[dependencies.thiserror]
+workspace = true
+
+[dependencies.graphs-core]
+workspace = true
+
+[features]
+default = []
+proc-macro = ["proc-macro2", "quote"]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]

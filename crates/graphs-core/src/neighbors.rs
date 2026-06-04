@@ -2,101 +2,167 @@
 
 use crate::{
     base::{Base, Directed},
-    direction::{Direction, Incoming, Outgoing},
+    direction::Direction::{self, Incoming, Outgoing},
 };
 
-/// Represents graphs that can return neighbors from the given node.
+/// Represents graphs that can return neighbors of the given node.
 pub trait Neighbors: Base {
     /// The associated type for neighbor iterators.
-    type Iterator<'n>: Iterator<Item = Self::NodeId>
+    type NodeIterator<'g>: Iterator<Item = Self::NodeId>
     where
-        Self: 'n;
+        Self: 'g;
 
-    /// Returns the neighbors of the given `node`.
-    fn neighbors(&self, node: Self::NodeId) -> Self::Iterator<'_>;
+    /// Returns the neighbors of the given node.
+    fn neighbors(&self, node: Self::NodeId) -> Self::NodeIterator<'_>;
+
+    /// Checks whether the node has neighbors.
+    ///
+    /// The default implementation calls [`neighbors`] and checks whether the iterator is non-empty.
+    ///
+    /// Implementors of this trait should provide more optimized implementations if possible.
+    ///
+    /// [`neighbors`]: Self::neighbors
+    fn has_neighbors(&self, node: Self::NodeId) -> bool {
+        self.neighbors(node).next().is_some()
+    }
 }
 
 impl<G: Neighbors + ?Sized> Neighbors for &G {
-    type Iterator<'n>
-        = G::Iterator<'n>
+    type NodeIterator<'g>
+        = G::NodeIterator<'g>
     where
-        Self: 'n;
+        Self: 'g;
 
-    fn neighbors(&self, node: G::NodeId) -> Self::Iterator<'_> {
+    fn neighbors(&self, node: Self::NodeId) -> Self::NodeIterator<'_> {
         (*self).neighbors(node)
+    }
+
+    fn has_neighbors(&self, node: Self::NodeId) -> bool {
+        (*self).has_neighbors(node)
     }
 }
 
 impl<G: Neighbors + ?Sized> Neighbors for &mut G {
-    type Iterator<'n>
-        = G::Iterator<'n>
+    type NodeIterator<'g>
+        = G::NodeIterator<'g>
     where
-        Self: 'n;
+        Self: 'g;
 
-    fn neighbors(&self, node: G::NodeId) -> Self::Iterator<'_> {
+    fn neighbors(&self, node: Self::NodeId) -> Self::NodeIterator<'_> {
         (**self).neighbors(node)
+    }
+
+    fn has_neighbors(&self, node: Self::NodeId) -> bool {
+        (**self).has_neighbors(node)
     }
 }
 
-/// Represents graphs that can return neighbors from the given node in the given direction.
+/// Represents graphs that can return neighbors of the given node in the given direction.
 pub trait DirectedNeighbors: Directed + Neighbors {
     /// The associated type for directed neighbor iterators.
-    type DirectedIterator<'n>: Iterator<Item = Self::NodeId>
+    type DirectedNodeIterator<'g>: Iterator<Item = Self::NodeId>
     where
-        Self: 'n;
+        Self: 'g;
 
-    /// Returns the neighbors from the given `node` in the given `direction`.
     fn directed_neighbors(
         &self,
-        node: Self::NodeId,
         direction: Direction,
-    ) -> Self::DirectedIterator<'_>;
+        node: Self::NodeId,
+    ) -> Self::DirectedNodeIterator<'_>;
 
-    /// Returns the [`Outgoing`] neighbors from the given `node`.
-    fn outgoing_neighbors(&self, node: Self::NodeId) -> Self::DirectedIterator<'_> {
-        self.directed_neighbors(node, Outgoing)
+    /// Returns the neighbors *outgoing* from the given node.
+    fn outgoing_neighbors(&self, node: Self::NodeId) -> Self::DirectedNodeIterator<'_> {
+        self.directed_neighbors(Outgoing, node)
     }
 
-    /// Returns the [`Incoming`] neighbors from the given `node`.
-    fn incoming_neighbors(&self, node: Self::NodeId) -> Self::DirectedIterator<'_> {
-        self.directed_neighbors(node, Incoming)
+    /// Returns the neighbors *incoming* to the given node.
+    fn incoming_neighbors(&self, node: Self::NodeId) -> Self::DirectedNodeIterator<'_> {
+        self.directed_neighbors(Incoming, node)
     }
 
-    fn has_incoming_neighbors(&self, node: Self::NodeId) -> bool {
-        self.incoming_neighbors(node).next().is_some()
-    }
-
+    /// Checks whether the node has *outgoing* neighbors.
+    ///
+    /// The default implementation calls [`outgoing_neighbors`] and checks whether
+    /// the iterator is non-empty.
+    ///
+    /// Implementors of this trait should provide more optimized implementations if possible.
+    ///
+    /// [`outgoing_neighbors`]: Self::outgoing_neighbors
     fn has_outgoing_neighbors(&self, node: Self::NodeId) -> bool {
         self.outgoing_neighbors(node).next().is_some()
+    }
+
+    /// Checks whether the node has *incoming* neighbors.
+    ///
+    /// The default implementation calls [`incoming_neighbors`] and checks whether
+    /// the iterator is non-empty.
+    ///
+    /// Implementors of this trait should provide more optimized implementations if possible.
+    ///
+    /// [`incoming_neighbors`]: Self::incoming_neighbors
+    fn has_incoming_neighbors(&self, node: Self::NodeId) -> bool {
+        self.incoming_neighbors(node).next().is_some()
     }
 }
 
 impl<G: DirectedNeighbors + ?Sized> DirectedNeighbors for &G {
-    type DirectedIterator<'n>
-        = G::DirectedIterator<'n>
+    type DirectedNodeIterator<'g>
+        = G::DirectedNodeIterator<'g>
     where
-        Self: 'n;
+        Self: 'g;
 
     fn directed_neighbors(
         &self,
-        node: G::NodeId,
         direction: Direction,
-    ) -> Self::DirectedIterator<'_> {
-        (*self).directed_neighbors(node, direction)
+        node: Self::NodeId,
+    ) -> Self::DirectedNodeIterator<'_> {
+        (*self).directed_neighbors(direction, node)
+    }
+
+    fn outgoing_neighbors(&self, node: Self::NodeId) -> Self::DirectedNodeIterator<'_> {
+        (*self).outgoing_neighbors(node)
+    }
+
+    fn incoming_neighbors(&self, node: Self::NodeId) -> Self::DirectedNodeIterator<'_> {
+        (*self).incoming_neighbors(node)
+    }
+
+    fn has_outgoing_neighbors(&self, node: Self::NodeId) -> bool {
+        (*self).has_outgoing_neighbors(node)
+    }
+
+    fn has_incoming_neighbors(&self, node: Self::NodeId) -> bool {
+        (*self).has_incoming_neighbors(node)
     }
 }
 
 impl<G: DirectedNeighbors + ?Sized> DirectedNeighbors for &mut G {
-    type DirectedIterator<'n>
-        = G::DirectedIterator<'n>
+    type DirectedNodeIterator<'g>
+        = G::DirectedNodeIterator<'g>
     where
-        Self: 'n;
+        Self: 'g;
 
     fn directed_neighbors(
         &self,
-        node: G::NodeId,
         direction: Direction,
-    ) -> Self::DirectedIterator<'_> {
-        (**self).directed_neighbors(node, direction)
+        node: Self::NodeId,
+    ) -> Self::DirectedNodeIterator<'_> {
+        (**self).directed_neighbors(direction, node)
+    }
+
+    fn outgoing_neighbors(&self, node: Self::NodeId) -> Self::DirectedNodeIterator<'_> {
+        (**self).outgoing_neighbors(node)
+    }
+
+    fn incoming_neighbors(&self, node: Self::NodeId) -> Self::DirectedNodeIterator<'_> {
+        (**self).incoming_neighbors(node)
+    }
+
+    fn has_outgoing_neighbors(&self, node: Self::NodeId) -> bool {
+        (**self).has_outgoing_neighbors(node)
+    }
+
+    fn has_incoming_neighbors(&self, node: Self::NodeId) -> bool {
+        (**self).has_incoming_neighbors(node)
     }
 }

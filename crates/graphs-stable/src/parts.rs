@@ -1,11 +1,15 @@
 use std::mem::replace;
 
-use graphs_core::{
+use graphs_common::{
     connections::Kinded,
-    count::Counts,
-    index::{DefaultUntypedIndex, EdgeIndex, NodeIndex, UntypedIndex},
+    index::{EdgeIndex, NodeIndex},
+};
+
+use graphs_core::{
+    cardinality::Cardinality,
+    index::{DefaultUntypedIndex, UntypedIndex},
     kinds::DefaultKind,
-    limit::Limited,
+    sentinel::Sentinel,
 };
 
 pub struct Free<I: UntypedIndex = DefaultUntypedIndex> {
@@ -13,8 +17,20 @@ pub struct Free<I: UntypedIndex = DefaultUntypedIndex> {
     pub edge: EdgeIndex<I>,
 }
 
-impl<I: UntypedIndex> Limited for Free<I> {
-    const LIMIT: Self = Self::new(NodeIndex::LIMIT, EdgeIndex::LIMIT);
+impl<I: UntypedIndex> Clone for Free<I> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<I: UntypedIndex> Copy for Free<I> {}
+
+impl<I: UntypedIndex> Sentinel for Free<I> {
+    const SENTINEL: Self = Self::new(NodeIndex::SENTINEL, EdgeIndex::SENTINEL);
+
+    fn is_sentinel(&self) -> bool {
+        self.node.is_sentinel() && self.edge.is_sentinel()
+    }
 }
 
 impl<I: UntypedIndex> Free<I> {
@@ -23,21 +39,27 @@ impl<I: UntypedIndex> Free<I> {
     }
 
     pub const fn reset(&mut self) -> Self {
-        replace(self, Self::LIMIT)
+        replace(self, Self::SENTINEL)
     }
 }
 
 pub struct Info<I: UntypedIndex = DefaultUntypedIndex> {
-    pub count: Counts,
+    pub cardinality: Cardinality,
     pub free: Free<I>,
 }
 
-impl<I: UntypedIndex> Info<I> {
-    pub const INITIAL: Self = Self::new(Counts::NULL, Free::LIMIT);
-
-    pub const fn new(count: Counts, free: Free<I>) -> Self {
-        Self { count, free }
+impl<I: UntypedIndex> Clone for Info<I> {
+    fn clone(&self) -> Self {
+        *self
     }
 }
 
-pub type Connection<I = DefaultUntypedIndex, K = DefaultKind> = Kinded<NodeIndex<I>, K>;
+impl<I: UntypedIndex> Copy for Info<I> {}
+
+impl<I: UntypedIndex> Info<I> {
+    pub const INITIAL: Self = Self::new(Cardinality::ZERO, Free::SENTINEL);
+
+    pub const fn new(cardinality: Cardinality, free: Free<I>) -> Self {
+        Self { cardinality, free }
+    }
+}

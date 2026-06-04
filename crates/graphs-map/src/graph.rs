@@ -16,7 +16,7 @@ use graphs_core::{
     kinds::{Directed, Kind, Undirected},
     loops::{Forbid, Loop},
     recoverable::RecoverableResult,
-    specs::Specs,
+    specs::PhantomSpecs,
     types::Single,
 };
 use indexmap::IndexMap;
@@ -24,6 +24,8 @@ use indexmap::IndexMap;
 pub type Directionals<N> = Vec<Directional<N>>;
 pub type Nodes<N, S> = IndexMap<N, Directionals<N>, S>;
 pub type Edges<N, E, K, S> = IndexMap<Canonical<K, N>, E, S>;
+
+pub type Specs<K, L> = PhantomSpecs<K, Single, L>;
 
 pub struct GraphMap<
     N: NodeTypeId,
@@ -35,7 +37,7 @@ pub struct GraphMap<
 > {
     nodes: Nodes<N, S>,
     edges: Edges<N, E, K, S>,
-    specs: PhantomData<Specs<K, Single, L>>,
+    specs: Specs<K, L>,
 }
 
 cfg_if! {
@@ -52,10 +54,7 @@ impl<N: NodeTypeId, E, K: Kind, S: BuildHasher, L: Loop> Base for GraphMap<N, E,
     type NodeId = N;
     type EdgeId = Canonical<K, N>;
 
-    type Kind = K;
-    type Loop = L;
-
-    type Type = Single;
+    type Specs = Specs<K, L>;
 }
 
 impl<N: NodeTypeId, E, K: Kind, S: BuildHasher> Data for GraphMap<N, E, K, S> {

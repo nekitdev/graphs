@@ -1,0 +1,21 @@
+[package]
+name = "graphs-dot-macros"
+version.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+description = "Macros for embedding DOT graphs in Rust."
+documentation = "https://docs.rs/graphs-dot-macros"
+readme = "README.md"
+repository.workspace = true
+license.workspace = true
+keywords = ["graph", "dot", "macro"]
+
+[dependencies.graphs-dot-parser]
+workspace = true
+
+[dependencies.graphs-core]
+workspace = true
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]

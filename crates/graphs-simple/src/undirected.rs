@@ -1,50 +1,296 @@
+use std::option::IntoIter;
+
+use graphs_assert::{assert_looped, assert_multi, assert_pseudo, assert_simple, assert_undirected};
+use graphs_common::index::NodeIndex;
 use graphs_core::{
-    index::DefaultUntypedIndex,
+    attached::Edges,
+    build::{RecoverableEdge, TryAddEdges},
+    connections::Connection,
+    direction::Direction,
+    edges::EdgeIn,
+    find::{Find, Found, or_missing},
+    index::{DefaultUntypedIndex, Index, UntypedIndex},
     kinds::Undirected,
-    loops::{Allow, DefaultLoop, Forbid},
-    types::{DefaultType, Multiple, Single},
+    loops::{Allow, DefaultLoop, Forbid, Loop},
+    recoverable, recoverable_return,
+    references::{EdgeRef, EdgeReferences},
+    sentinel::Sentinel,
+    types::{DefaultType, Multiple, Single, Type},
 };
 
-use crate::generic::GenericGraph;
+use crate::{
+    errors::{LoopError, LoopedError, MultipleError, SimpleError, edge_index},
+    generic::{GenericGraph, MaybePair},
+    parts::{Edge, EdgeSlice, Next},
+    references::UndirectedEdgeRef,
+};
 
 /// Represents undirected graphs.
 pub type Graph<N, E, I = DefaultUntypedIndex, T = DefaultType, L = DefaultLoop> =
     GenericGraph<N, E, I, Undirected, T, L>;
 
+/// Represents undirected simple graphs.
 pub type SimpleGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Single, Forbid>;
+
+/// Represents undirected looped graphs.
 pub type LoopedGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Single, Allow>;
+
+/// Represents undirected multi graphs.
 pub type MultiGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Multiple, Forbid>;
+
+/// Represents undirected pseudo graphs.
 pub type PseudoGraph<N, E, I = DefaultUntypedIndex> = Graph<N, E, I, Multiple, Allow>;
 
-#[allow(dead_code)]
-mod assert {
-    use graphs_core::{
-        base::{assert_looped, assert_multi, assert_pseudo, assert_simple, assert_undirected},
-        index::UntypedIndex,
-        loops::Loop,
-        types::Type,
-    };
+pub type SingleTypeGraph<N, E, I = DefaultUntypedIndex, L = DefaultLoop> =
+    Graph<N, E, I, Single, L>;
 
-    use super::{Graph, LoopedGraph, MultiGraph, PseudoGraph, SimpleGraph};
+pub type MultipleTypeGraph<N, E, I = DefaultUntypedIndex, L = DefaultLoop> =
+    Graph<N, E, I, Multiple, L>;
 
-    const fn assert_on_base<N, E, I: UntypedIndex, T: Type, L: Loop>() {
-        assert_undirected::<Graph<N, E, I, T, L>>();
+pub type AllowLoopGraph<N, E, I = DefaultUntypedIndex, T = DefaultType> = Graph<N, E, I, T, Allow>;
+
+pub type ForbidLoopGraph<N, E, I = DefaultUntypedIndex, T = DefaultType> =
+    Graph<N, E, I, T, Forbid>;
+
+assert_undirected!(Graph<N, E, I: UntypedIndex, T: Type, L: Loop>);
+assert_simple!(SimpleGraph<N, E, I: UntypedIndex>);
+assert_looped!(LoopedGraph<N, E, I: UntypedIndex>);
+assert_multi!(MultiGraph<N, E, I: UntypedIndex>);
+assert_pseudo!(PseudoGraph<N, E, I: UntypedIndex>);
+
+pub struct Maybe<'g, G: EdgeReferences + 'g> {
+    iterator: IntoIter<G::EdgeRef<'g>>,
+}
+
+impl<'g, G: EdgeReferences + 'g> Maybe<'g, G> {
+    pub fn new(option: Option<G::EdgeRef<'g>>) -> Self {
+        let iterator = option.into_iter();
+
+        Self { iterator }
     }
 
-    const fn assert_on_simple<N, E, I: UntypedIndex>() {
-        assert_simple::<SimpleGraph<N, E, I>>();
+    pub fn some(edge: G::EdgeRef<'g>) -> Self {
+        Self::new(Some(edge))
     }
 
-    const fn assert_on_looped<N, E, I: UntypedIndex>() {
-        assert_looped::<LoopedGraph<N, E, I>>();
+    pub fn none() -> Self {
+        Self::new(None)
+    }
+}
+
+impl<'g, G: EdgeReferences + 'g> Iterator for Maybe<'g, G> {
+    type Item = G::EdgeRef<'g>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iterator.next()
+    }
+}
+
+impl<N, E, I: UntypedIndex, L: Loop> Find for SingleTypeGraph<N, E, I, L> {
+    type Connecting<'g>
+        = Maybe<'g, Self>
+    where
+        Self: 'g;
+
+    fn find(&self, connection: Self::Connection) -> Found<'_, Self> {
+        let (one_index, two_index) = connection.parts();
+
+        let (node, _) = or_missing(self.node(one_index), self.node(two_index), connection)?;
+
+        for direction in Direction::ALL {
+            let reversed = direction.reversed();
+
+            let mut index = node.next.directed(direction);
+
+            while let Some(edge) = self.edge(index) {
+                if edge.connection.directed(reversed) == two_index {
+                    return Ok(Self::Connecting::some(edge.as_ref_with(index)));
+                }
+
+                index = edge.next.directed(direction);
+            }
+        }
+
+        Ok(Self::Connecting::none())
+    }
+}
+
+impl<N, E, I: UntypedIndex, L: Loop> Find for MultipleTypeGraph<N, E, I, L> {
+    type Connecting<'g>
+        = Connecting<'g, E, I>
+    where
+        Self: 'g;
+
+    fn find(&self, connection: Self::Connection) -> Found<'_, Self> {
+        let (node, connect) = connection.parts();
+
+        let _ = or_missing(self.node(node), self.node(connect), connection)?;
+
+        Ok(self.edges(node).connecting(connect))
+    }
+}
+
+pub struct EdgeIterator<'a, E, I: UntypedIndex = DefaultUntypedIndex> {
+    index: NodeIndex<I>,
+    edges: EdgeSlice<'a, E, I, Undirected>,
+    next: Next<I>,
+}
+
+impl<'a, E, I: UntypedIndex> EdgeIterator<'a, E, I> {
+    pub fn connecting(self, connect: NodeIndex<I>) -> Connecting<'a, E, I> {
+        Connecting {
+            connect,
+            iterator: self,
+        }
+    }
+}
+
+pub struct Connecting<'a, E, I: UntypedIndex = DefaultUntypedIndex> {
+    connect: NodeIndex<I>,
+    iterator: EdgeIterator<'a, E, I>,
+}
+
+impl<'a, E, I: UntypedIndex> Iterator for Connecting<'a, E, I> {
+    type Item = UndirectedEdgeRef<'a, E, I>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iterator
+            .find(|node| node.connection.two == self.connect)
+    }
+}
+
+impl<'a, E, I: UntypedIndex> Iterator for EdgeIterator<'a, E, I> {
+    type Item = UndirectedEdgeRef<'a, E, I>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let outgoing = self.next.outgoing;
+
+        if outgoing.is_regular()
+            && let Some(edge) = self.edges.get(outgoing.index())
+        {
+            self.next.outgoing = edge.next.outgoing;
+
+            return Some(edge.as_ref_with(outgoing));
+        }
+
+        let incoming = self.next.incoming;
+
+        while incoming.is_regular()
+            && let Some(edge) = self.edges.get(incoming.index())
+        {
+            self.next.incoming = edge.next.incoming;
+
+            // self-loop, already returned before
+            if edge.connection.one == self.index {
+                continue;
+            }
+
+            return Some(edge.as_ref_with(incoming));
+        }
+
+        None
+    }
+}
+
+impl<N, E, I: UntypedIndex, T: Type, L: Loop> Edges for Graph<N, E, I, T, L> {
+    type EdgeIterator<'g>
+        = EdgeIterator<'g, E, I>
+    where
+        Self: 'g;
+
+    fn edges(&self, index: Self::NodeId) -> Self::EdgeIterator<'_> {
+        let next = self
+            .node(index)
+            .map(|node| node.next)
+            .unwrap_or(Next::SENTINEL);
+
+        let edges = self.edges_ref();
+
+        Self::EdgeIterator { index, edges, next }
     }
 
-    const fn assert_on_multi<N, E, I: UntypedIndex>() {
-        assert_multi::<MultiGraph<N, E, I>>();
+    fn has_edges(&self, node: Self::NodeId) -> bool {
+        todo!()
     }
+}
 
-    const fn assert_on_pseudo<N, E, I: UntypedIndex>() {
-        assert_pseudo::<PseudoGraph<N, E, I>>();
+impl<N, E, I: UntypedIndex> TryAddEdges for SimpleGraph<N, E, I> {
+    type Error = SimpleError<I, Undirected>;
+
+    fn try_add_edge(&mut self, edge: EdgeIn<Self>) -> RecoverableEdge<Self> {
+        let (connection, value) = edge.get();
+
+        if connection.is_loop() {
+            return recoverable!(LoopError::new(connection), value);
+        }
+
+        if let Some(edge) = recoverable_return!(self.find(connection), value).next() {
+            return recoverable!(MultipleError::new(edge.id(), edge.connection()), value);
+        }
+
+        let size = self.size();
+
+        let index = recoverable_return!(edge_index(size), value);
+
+        let mut edge = Edge::new(value, connection);
+
+        let (one, two) = connection.parts();
+
+        // SAFETY: non-looped connection, both nodes exist
+        let (one_node, two_node) = unsafe { self.node_pair_mut(one, two) };
+
+        edge.next = Next::new(
+            one_node.next.replace_outgoing(index),
+            two_node.next.replace_incoming(index),
+        );
+
+        self.edges.push(edge);
+
+        Ok(index)
+    }
+}
+
+impl<N, E, I: UntypedIndex> TryAddEdges for LoopedGraph<N, E, I> {
+    type Error = LoopedError<I, Undirected>;
+
+    fn try_add_edge(&mut self, edge: EdgeIn<Self>) -> RecoverableEdge<Self> {
+        let (connection, value) = edge.get();
+
+        if let Some(edge) = recoverable_return!(self.find(connection), value).next() {
+            return recoverable!(MultipleError::new(edge.id(), edge.connection()), value);
+        }
+
+        let size = self.size();
+
+        let index = recoverable_return!(edge_index(size), value);
+
+        let mut edge = Edge::new(value, connection);
+
+        let (one, two) = connection.parts();
+
+        let option = self.node_twice_mut(one, two);
+
+        // SAFETY: both nodes exist (possibly looped)
+        let maybe_pair = unsafe { option.unwrap_unchecked() };
+
+        match maybe_pair {
+            MaybePair::One(node) => {
+                edge.next = Next::new(
+                    node.next.replace_outgoing(index),
+                    node.next.replace_incoming(index),
+                );
+            }
+            MaybePair::Two(one_node, two_node) => {
+                edge.next = Next::new(
+                    one_node.next.replace_outgoing(index),
+                    two_node.next.replace_incoming(index),
+                );
+            }
+        }
+
+        self.edges.push(edge);
+
+        Ok(index)
     }
 }
 
