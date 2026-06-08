@@ -50,6 +50,7 @@ pub use crate::{
         DirectedEdgeRef, EdgeRef, EdgeRefIn, EdgeReferences, NamedEdgeRef, NamedNodeRef, NodeRef,
         NodeRefIn, NodeReferences, References, UndirectedEdgeRef, UnnamedEdgeRef, UnnamedNodeRef,
     },
+    remove::{Remove, RemoveEdge, RemoveNode, Removed, RemovedIn},
     reserve::{Reserve, ReserveEdges, ReserveNodes},
     reverse::Reverse,
     sentinel::Sentinel,

@@ -54,7 +54,7 @@ pub trait Recorder<N: NodeTypeId = DefaultNodeId> {
 mod hash {
     use std::collections::HashMap;
 
-    impl<N: NodeTypeId> Recorder for HashMap<N, Output> {}
+    // impl<N: NodeTypeId> Recorder for HashMap<N, Output> {}
 }
 
 impl<N: NodeTypeId, R: Recorder<N>> Recorder<N> for &mut R {

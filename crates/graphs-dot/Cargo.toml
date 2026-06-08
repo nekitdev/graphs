@@ -17,11 +17,13 @@ optional = true
 
 [dependencies.graphs-dot-parser]
 workspace = true
-optional = true
+
+[dependencies.graphs-core]
+workspace = true
 
 [features]
-default = ["macros", "parser"]
-parser = ["graphs-dot-parser"]
+default = ["std", "macros"]
+std = ["graphs-dot-parser/std"]
 macros = ["graphs-dot-macros"]
 
 [package.metadata.docs.rs]

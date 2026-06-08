@@ -6,6 +6,7 @@ edition.workspace = true
 rust-version.workspace = true
 description = "Assertions on graphs."
 documentation = "https://docs.rs/graphs-assert"
+readme = "README.md"
 repository.workspace = true
 license.workspace = true
 keywords = ["graph", "assert"]

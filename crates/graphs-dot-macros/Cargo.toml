@@ -2,20 +2,30 @@
 name = "graphs-dot-macros"
 version.workspace = true
 authors.workspace = true
-rust-version.workspace = true
 edition.workspace = true
-description = "Macros for embedding DOT graphs in Rust."
+rust-version.workspace = true
+description = "Macros for embedding DOT graphs."
 documentation = "https://docs.rs/graphs-dot-macros"
 readme = "README.md"
 repository.workspace = true
 license.workspace = true
 keywords = ["graph", "dot", "macro"]
 
+[lib]
+proc-macro = true
+
 [dependencies.graphs-dot-parser]
 workspace = true
+features = ["std", "proc-macro"]
 
-[dependencies.graphs-core]
+[dependencies.proc-macro2]
 workspace = true
+features = ["proc-macro"]
 
-[package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docsrs"]
+[dependencies.quote]
+workspace = true
+features = ["proc-macro"]
+
+[dependencies.syn]
+workspace = true
+features = ["parsing", "printing", "proc-macro"]

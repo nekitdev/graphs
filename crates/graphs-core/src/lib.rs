@@ -41,6 +41,7 @@ pub mod nodes;
 #[macro_use]
 pub mod recoverable;
 pub mod references;
+pub mod remove;
 pub mod reserve;
 pub mod reverse;
 pub mod sentinel;

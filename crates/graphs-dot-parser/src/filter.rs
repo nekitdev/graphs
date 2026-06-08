@@ -1,55 +1,76 @@
 use std::collections::HashSet;
 
 use crate::ast::{
-    self, Attribute, AttributeStatement, Attributes, Id, Item, NodeId, NodeStatement,
+    Attribute, AttributeStatement, Attributes, EdgeStatement, Graph, Id, NodeId, NodeStatement,
+    Statement, Statements,
 };
 
-pub struct Graph<'a> {
+pub struct FilterGraph<'a> {
     pub strict: bool,
     pub id: Option<Id<'a>>,
-    pub statements: Statements<'a>,
+    pub statements: FilterStatements<'a>,
+}
+
+impl<'a> Graph<'a> {
+    pub fn into_filter(self) -> FilterGraph<'a> {
+        let strict = self.strict;
+        let id = self.id;
+        let statements = self.statements.into_filter();
+
+        FilterGraph {
+            strict,
+            id,
+            statements,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Statements<'a> {
-    pub list: Vec<Statement<'a>>,
+pub struct FilterStatements<'a> {
+    pub list: Vec<FilterStatement<'a>>,
 }
 
-impl<'a> From<ast::Statements<'a>> for Statements<'a> {
-    fn from(statements: ast::Statements<'a>) -> Self {
+impl<'a> Statements<'a> {
+    pub fn into_filter(self) -> FilterStatements<'a> {
         let mut list = Vec::new();
 
-        for statement in statements.list {
+        for statement in self.list {
             match statement {
-                ast::Statement::Node(node_statement) => {
-                    list.push(Statement::Node(node_statement));
+                Statement::Node(node_statement) => {
+                    list.push(FilterStatement::Node(node_statement));
                 }
-                ast::Statement::Edge(edge_statement) => {
-                    // list.push(Self::Edge(edge_statement));
-                }
-                ast::Statement::Attribute(attribute_statement) => {
-                    list.push(Statement::Attribute(attribute_statement));
-                }
-                ast::Statement::PlainAttribute(attribute) => {
-                    list.push(Statement::PlainAttribute(attribute));
-                }
-                ast::Statement::Subgraph(graph) => {
-                    let mut subgraph_statements = graph.statements.into();
+                Statement::Edge(edge_statement) => {
+                    let mut edge_statements = edge_statement
+                        .into_filter()
+                        .into_iter()
+                        .map(FilterStatement::Edge)
+                        .collect();
 
-                    list.append(&mut subgraph_statements);
+                    list.append(&mut edge_statements);
+                }
+                Statement::Attribute(attribute_statement) => {
+                    list.push(FilterStatement::Attribute(attribute_statement));
+                }
+                Statement::PlainAttribute(attribute) => {
+                    list.push(FilterStatement::PlainAttribute(attribute));
+                }
+                Statement::Subgraph(graph) => {
+                    let mut subgraph_statements = graph.statements.into_filter();
+
+                    list.append(&mut subgraph_statements.list);
                 }
             }
         }
 
-        Self { list }
+        FilterStatements { list }
     }
 }
 
-impl<'a> From<ast::EdgeStatement<'a>> for Vec<EdgeStatement<'a>> {
-    fn from(statement: ast::EdgeStatement<'a>) -> Self {
-        let mut statements = Self::new();
+impl<'a> EdgeStatement<'a> {
+    pub fn into_filter(self) -> Vec<FilterEdgeStatement<'a>> {
+        let mut statements = Vec::new();
 
-        let flattened = statement.flatten();
+        let flattened = self.flatten();
 
         for flat in flattened {
             let from = flat.from;
@@ -112,37 +133,37 @@ impl<'a> From<ast::EdgeStatement<'a>> for Vec<EdgeStatement<'a>> {
 // }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Statement<'a> {
+pub enum FilterStatement<'a> {
     Node(NodeStatement<'a>),
-    Edge(EdgeStatement<'a>),
+    Edge(FilterEdgeStatement<'a>),
     Attribute(AttributeStatement<'a>),
     PlainAttribute(Attribute<'a>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct EdgeStatement<'a> {
-    pub item: NodeId<'a>,
-    pub tail: Tail<'a>,
+pub struct FilterEdgeStatement<'a> {
+    pub from: NodeId<'a>,
+    pub next: FilterNext<'a>,
     pub attributes: Option<Attributes<'a>>,
 }
 
-impl<'a> EdgeStatement<'a> {
+impl<'a> FilterEdgeStatement<'a> {
     pub fn get_node_identifiers(&self) -> HashSet<NodeId<'a>> {
-        let mut identifiers = self.tail.get_node_identifiers();
+        let mut identifiers = self.next.get_node_identifiers();
 
-        identifiers.insert(self.item.clone());
+        identifiers.insert(self.from.clone());
 
         identifiers
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Tail<'a> {
-    pub item: NodeId<'a>,
-    pub next: Option<Box<Tail<'a>>>,
+pub struct FilterNext<'a> {
+    pub to: NodeId<'a>,
+    pub next: Option<Box<FilterNext<'a>>>,
 }
 
-impl<'a> Tail<'a> {
+impl<'a> FilterNext<'a> {
     pub fn get_node_identifiers(&self) -> HashSet<NodeId<'a>> {
         let mut identifiers = self
             .next
@@ -150,7 +171,7 @@ impl<'a> Tail<'a> {
             .map(|next| next.get_node_identifiers())
             .unwrap_or_default();
 
-        identifiers.insert(self.item.clone());
+        identifiers.insert(self.to.clone());
 
         identifiers
     }

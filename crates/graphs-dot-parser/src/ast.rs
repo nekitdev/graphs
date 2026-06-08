@@ -1,17 +1,24 @@
-use std::borrow::Cow;
+cfg_select! {
+    feature = "std" => {
+        use std::borrow::Cow;
+    }
+    _ => {
+        use alloc::{borrow::Cow, boxed::Box, vec::Vec};
+    }
+}
 
 use non_empty_slice::{NonEmptyVec, non_empty_vec};
 use ownership::IntoOwned;
 
-use crate::parser::{DotError, DotPair, Parse, ParseError, Rule, parse_str};
+use crate::parser::{InternalError, Parse, ParsePair, Rule, Ruled};
 
 pub(crate) mod import {
-    pub use std::result::Result;
+    pub use core::result::Result;
 }
 
 pub type Str<'a> = Cow<'a, str>;
 
-fn as_str<'a>(pair: DotPair<'a>) -> Str<'a> {
+fn as_str<'a>(pair: ParsePair<'a>) -> Str<'a> {
     Str::Borrowed(pair.as_str())
 }
 
@@ -41,8 +48,28 @@ pub enum Id<'a> {
     Html(Str<'a>),
 }
 
+impl<'a> Id<'a> {
+    pub fn get(self) -> Str<'a> {
+        match self {
+            Self::Identifier(string)
+            | Self::Number(string)
+            | Self::Quoted(string)
+            | Self::Html(string) => string,
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Identifier(string)
+            | Self::Number(string)
+            | Self::Quoted(string)
+            | Self::Html(string) => string.as_ref(),
+        }
+    }
+}
+
 impl<'a> Parse<'a> for Id<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let pair = next_expected!(inner, input, identifier, number, quoted, html)?;
@@ -77,6 +104,16 @@ pub struct Graph<'a> {
     pub statements: Statements<'a>,
 }
 
+impl<'a> Graph<'a> {
+    pub const fn statements(&self) -> &Statements<'a> {
+        &self.statements
+    }
+
+    pub const fn statements_mut(&mut self) -> &mut Statements<'a> {
+        &mut self.statements
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, IntoOwned)]
 pub enum DotGraph<'a> {
     Directed(Graph<'a>),
@@ -84,13 +121,31 @@ pub enum DotGraph<'a> {
 }
 
 impl<'a> DotGraph<'a> {
-    pub fn parse_str(input: &'a str) -> Result<Self, DotError> {
-        parse_str(Rule::dotgraph, input)
+    pub const fn graph(&self) -> &Graph<'a> {
+        match self {
+            Self::Directed(graph) | Self::Undirected(graph) => graph,
+        }
+    }
+
+    pub const fn graph_mut(&mut self) -> &mut Graph<'a> {
+        match self {
+            Self::Directed(graph) | Self::Undirected(graph) => graph,
+        }
+    }
+
+    pub fn get(self) -> Graph<'a> {
+        match self {
+            Self::Directed(graph) | Self::Undirected(graph) => graph,
+        }
     }
 }
 
+impl Ruled for DotGraph<'_> {
+    const RULE: Rule = Rule::dotgraph;
+}
+
 impl<'a> Parse<'a> for DotGraph<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let mut strict = false;
@@ -144,7 +199,7 @@ pub struct Graphs<'a> {
 }
 
 impl<'a> Parse<'a> for Graphs<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let head = next_expected!(inner, input, dotfile)?;
@@ -165,10 +220,8 @@ impl<'a> Parse<'a> for Graphs<'a> {
     }
 }
 
-impl<'a> Graphs<'a> {
-    pub fn parse_str(input: &'a str) -> Result<Self, DotError> {
-        parse_str(Rule::dotfile, input)
-    }
+impl Ruled for Graphs<'_> {
+    const RULE: Rule = Rule::dotfile;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, IntoOwned)]
@@ -177,8 +230,30 @@ pub struct Attribute<'a> {
     pub value: Id<'a>,
 }
 
+impl<'a> Attribute<'a> {
+    pub const fn key(&self) -> &Id<'a> {
+        &self.key
+    }
+
+    pub const fn value(&self) -> &Id<'a> {
+        &self.value
+    }
+
+    pub const fn key_mut(&mut self) -> &mut Id<'a> {
+        &mut self.key
+    }
+
+    pub const fn value_mut(&mut self) -> &mut Id<'a> {
+        &mut self.value
+    }
+
+    pub fn into_pair(self) -> (Id<'a>, Id<'a>) {
+        (self.key, self.value)
+    }
+}
+
 impl<'a> Parse<'a> for Attribute<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let key_pair = next_expected!(inner, input, id)?;
@@ -201,7 +276,7 @@ pub struct AttributeList<'a> {
 }
 
 impl<'a> Parse<'a> for AttributeList<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let head = next_expected!(inner, input, attribute)?;
@@ -224,26 +299,26 @@ impl<'a> Parse<'a> for AttributeList<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, IntoOwned)]
 pub struct Attributes<'a> {
-    pub lists: Vec<AttributeList<'a>>,
+    pub non_empty: NonEmptyVec<AttributeList<'a>>,
 }
 
 impl<'a> Parse<'a> for Attributes<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
-        let head = next_expected!(inner, input, attribute_list)?;
+        let pair = next_expected!(inner, input, attribute_list)?;
 
-        let mut list = AttributeList::parse(head)?;
+        let mut list = AttributeList::parse(pair)?;
 
-        let mut lists = vec![list];
+        let mut non_empty = non_empty_vec![list];
 
         for pair in inner {
             list = AttributeList::parse(pair)?;
 
-            lists.push(list);
+            non_empty.push(list);
         }
 
-        let attributes = Self { lists };
+        let attributes = Self { non_empty };
 
         Ok(attributes)
     }
@@ -256,8 +331,28 @@ pub enum AttributeStatement<'a> {
     Edge(Attributes<'a>),
 }
 
+impl<'a> AttributeStatement<'a> {
+    pub const fn attributes(&self) -> &Attributes<'a> {
+        match self {
+            Self::Graph(attributes) | Self::Node(attributes) | Self::Edge(attributes) => attributes,
+        }
+    }
+
+    pub const fn attributes_mut(&mut self) -> &mut Attributes<'a> {
+        match self {
+            Self::Graph(attributes) | Self::Node(attributes) | Self::Edge(attributes) => attributes,
+        }
+    }
+
+    pub fn get(self) -> Attributes<'a> {
+        match self {
+            Self::Graph(attributes) | Self::Node(attributes) | Self::Edge(attributes) => attributes,
+        }
+    }
+}
+
 impl<'a> Parse<'a> for AttributeStatement<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let kind_pair = next_expected!(inner, input, graph, node, edge)?;
@@ -285,8 +380,18 @@ pub struct NodeStatement<'a> {
     pub attributes: Option<Attributes<'a>>,
 }
 
+impl<'a> NodeStatement<'a> {
+    pub const fn node(&self) -> &NodeId<'a> {
+        &self.node
+    }
+
+    pub const fn node_mut(&mut self) -> &mut NodeId<'a> {
+        &mut self.node
+    }
+}
+
 impl<'a> Parse<'a> for NodeStatement<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let node_pair = next_expected!(inner, input, node_id)?;
@@ -309,6 +414,22 @@ pub struct EdgeStatement<'a> {
 }
 
 impl<'a> EdgeStatement<'a> {
+    pub const fn from(&self) -> &Item<'a> {
+        &self.from
+    }
+
+    pub const fn from_mut(&mut self) -> &mut Item<'a> {
+        &mut self.from
+    }
+
+    pub const fn next(&self) -> &Next<'a> {
+        &self.next
+    }
+
+    pub const fn next_mut(&mut self) -> &mut Next<'a> {
+        &mut self.next
+    }
+
     pub fn flatten(self) -> Vec<EdgeStatement<'a>> {
         let mut from = self.from;
         let mut next = self.next;
@@ -341,7 +462,7 @@ impl<'a> EdgeStatement<'a> {
 }
 
 impl<'a> Parse<'a> for EdgeStatement<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let from_pair = next_expected!(inner, input, item)?;
@@ -371,7 +492,7 @@ pub enum Item<'a> {
 }
 
 impl<'a> Parse<'a> for Item<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let pair = next_expected!(inner, input, node_id, subgraph)?;
@@ -400,8 +521,18 @@ pub struct NodeId<'a> {
     pub port: Option<Port<'a>>,
 }
 
+impl<'a> NodeId<'a> {
+    pub const fn id(&self) -> &Id<'a> {
+        &self.id
+    }
+
+    pub const fn id_mut(&mut self) -> &mut Id<'a> {
+        &mut self.id
+    }
+}
+
 impl<'a> Parse<'a> for NodeId<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let id_pair = next_expected!(inner, input, id)?;
@@ -423,7 +554,7 @@ pub enum Port<'a> {
 }
 
 impl<'a> Parse<'a> for Port<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let pair = next_expected!(inner, input, compass, id)?;
@@ -454,8 +585,18 @@ pub struct Next<'a> {
     pub next: Option<Box<Next<'a>>>,
 }
 
+impl<'a> Next<'a> {
+    pub const fn to(&self) -> &Item<'a> {
+        &self.to
+    }
+
+    pub const fn to_mut(&mut self) -> &mut Item<'a> {
+        &mut self.to
+    }
+}
+
 impl<'a> Parse<'a> for Next<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let pair = next_expected!(inner, input, item)?;
@@ -477,6 +618,14 @@ pub struct Subgraph<'a> {
 }
 
 impl<'a> Subgraph<'a> {
+    pub const fn statements(&self) -> &Statements<'a> {
+        &self.statements
+    }
+
+    pub const fn statements_mut(&mut self) -> &mut Statements<'a> {
+        &mut self.statements
+    }
+
     pub fn into_graph(self, strict: bool) -> Graph<'a> {
         Graph {
             strict,
@@ -495,7 +644,7 @@ impl<'a> Subgraph<'a> {
 }
 
 impl<'a> Parse<'a> for Subgraph<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let mut id = None;
@@ -524,7 +673,7 @@ pub struct Statements<'a> {
 }
 
 impl<'a> Parse<'a> for Statements<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let list = input
             .into_inner()
             .map(Statement::parse)
@@ -546,7 +695,7 @@ pub enum Statement<'a> {
 }
 
 impl<'a> Parse<'a> for Statement<'a> {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let pair = next_expected!(
@@ -615,7 +764,7 @@ pub enum Compass {
 }
 
 impl<'a> Parse<'a> for Compass {
-    fn parse(input: DotPair<'a>) -> Result<Self, ParseError<'a>> {
+    fn parse(input: ParsePair<'a>) -> Result<Self, InternalError<'a>> {
         let mut inner = input.clone().into_inner();
 
         let pair = next_expected!(inner, input, n, ne, e, se, s, sw, w, nw, c, unspecified)?;
@@ -635,5 +784,550 @@ impl<'a> Parse<'a> for Compass {
         };
 
         Ok(compass)
+    }
+}
+
+#[cfg(feature = "proc-macro")]
+mod tokens {
+    use proc_macro2::TokenStream;
+    use quote::{ToTokens, quote};
+
+    use super::{
+        Attribute, AttributeList, AttributeStatement, Attributes, Compass, DotGraph, EdgeStatement,
+        Graph, Graphs, Id, Item, Next, NodeId, NodeStatement, Port, Statement, Statements,
+        Subgraph,
+    };
+
+    fn quote_str(string: &str) -> TokenStream {
+        quote! {
+            graphs_dot_parser::ast::Str::Borrowed(#string)
+        }
+    }
+
+    impl Id<'_> {
+        fn variant(&self) -> TokenStream {
+            match self {
+                Self::Identifier(_) => quote! {
+                    Identifier
+                },
+                Self::Number(_) => quote! {
+                    Number
+                },
+                Self::Quoted(_) => quote! {
+                    Quoted
+                },
+                Self::Html(_) => quote! {
+                    Html
+                },
+            }
+        }
+    }
+
+    impl ToTokens for Id<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::Id
+            };
+
+            let string = quote_str(self.as_str());
+
+            let variant = self.variant();
+
+            let tokens = quote! {
+                #path::#variant(#string)
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for Graph<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::Graph
+            };
+
+            let strict = self.strict;
+
+            let id = match self.id.as_ref() {
+                Some(id) => quote! {
+                    Some(#id)
+                },
+                None => quote! {
+                    None
+                },
+            };
+
+            let statements = self.statements();
+
+            let tokens = quote! {
+                #path {
+                    strict: #strict,
+                    id: #id,
+                    statements: #statements,
+                }
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl DotGraph<'_> {
+        fn variant(&self) -> TokenStream {
+            match self {
+                Self::Directed(_) => quote! {
+                    Directed
+                },
+                Self::Undirected(_) => quote! {
+                    Undirected
+                },
+            }
+        }
+    }
+
+    impl ToTokens for DotGraph<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::DotGraph
+            };
+
+            let variant = self.variant();
+
+            let graph = self.graph();
+
+            let tokens = quote! {
+                #path::#variant(#graph)
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for Graphs<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::Graphs
+            };
+
+            let non_empty_slice = self.non_empty.as_non_empty_slice();
+
+            let non_empty = quote! {
+                non_empty_slice::non_empty_vec![
+                    #(#non_empty_slice),*
+                ]
+            };
+
+            let tokens = quote! {
+                #path {
+                    non_empty: #non_empty,
+                }
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for Attribute<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::Attribute
+            };
+
+            let key = self.key();
+            let value = self.value();
+
+            let tokens = quote! {
+                #path {
+                    key: #key,
+                    value: #value,
+                }
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for AttributeList<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::AttributeList
+            };
+
+            let non_empty_slice = self.non_empty.as_non_empty_slice();
+
+            let non_empty = quote! {
+                non_empty_slice::non_empty_vec![
+                    #(#non_empty_slice),*
+                ]
+            };
+
+            let tokens = quote! {
+                #path {
+                    non_empty: #non_empty,
+                }
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for Attributes<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::Attributes
+            };
+
+            let non_empty_slice = self.non_empty.as_non_empty_slice();
+
+            let non_empty = quote! {
+                non_empty_slice::non_empty_vec![
+                    #(#non_empty_slice),*
+                ]
+            };
+
+            let tokens = quote! {
+                #path {
+                    non_empty: #non_empty,
+                }
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl AttributeStatement<'_> {
+        fn variant(&self) -> TokenStream {
+            match self {
+                Self::Graph(_) => quote! {
+                    Graph
+                },
+                Self::Node(_) => quote! {
+                    Node
+                },
+                Self::Edge(_) => quote! {
+                    Edge
+                },
+            }
+        }
+    }
+
+    impl ToTokens for AttributeStatement<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::AttributeStatement
+            };
+
+            let variant = self.variant();
+
+            let attributes = self.attributes();
+
+            let tokens = quote! {
+                #path::#variant(#attributes)
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for NodeStatement<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::NodeStatement
+            };
+
+            let node = self.node();
+
+            let attributes = match self.attributes.as_ref() {
+                Some(attributes) => quote! {
+                    Some(#attributes)
+                },
+                None => quote! {
+                    None
+                },
+            };
+
+            let tokens = quote! {
+                #path {
+                    node: #node,
+                    attributes: #attributes,
+                }
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for EdgeStatement<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::EdgeStatement
+            };
+
+            let from = self.from();
+            let next = self.next();
+
+            let attributes = match self.attributes.as_ref() {
+                Some(attributes) => quote! {
+                    Some(#attributes)
+                },
+                None => quote! {
+                    None
+                },
+            };
+
+            let tokens = quote! {
+                #path {
+                    from: #from,
+                    next: #next,
+                    attributes: #attributes,
+                }
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for Item<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::Item
+            };
+
+            let init = match self {
+                Self::Node(node) => quote! {
+                    Node(#node)
+                },
+                Self::Subgraph(subgraph) => quote! {
+                    Subgraph(#subgraph)
+                },
+            };
+
+            let tokens = quote! {
+                #path::#init
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for NodeId<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::NodeId
+            };
+
+            let id = self.id();
+
+            let port = match self.port.as_ref() {
+                Some(port) => quote! {
+                    Some(#port)
+                },
+                None => quote! {
+                    None
+                },
+            };
+
+            let tokens = quote! {
+                #path {
+                    id: #id,
+                    port: #port,
+                }
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for Port<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::Port
+            };
+
+            let init = match self {
+                Self::Id(id, option) => match option {
+                    Some(compass) => quote! {
+                        Id(#id, Some(#compass))
+                    },
+                    None => quote! {
+                        Id(#id, None)
+                    },
+                },
+                Self::Compass(compass) => quote! {
+                    Compass(#compass)
+                },
+            };
+
+            let tokens = quote! {
+                #path::#init
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for Next<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::Next
+            };
+
+            let to = self.to();
+
+            let next = match self.next.as_deref() {
+                Some(next) => quote! {
+                    Some(Box::new(#next))
+                },
+                None => quote! {
+                    None
+                },
+            };
+
+            let tokens = quote! {
+                #path {
+                    to: #to,
+                    next: #next,
+                }
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for Subgraph<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::Subgraph
+            };
+
+            let id = match self.id.as_ref() {
+                Some(id) => quote! {
+                    Some(#id)
+                },
+                None => quote! {
+                    None
+                },
+            };
+
+            let statements = self.statements();
+
+            let tokens = quote! {
+                #path {
+                    id: #id,
+                    statements: #statements,
+                }
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for Statements<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::Statements
+            };
+
+            let slice = self.list.as_slice();
+
+            let list = quote! {
+                vec![
+                    #(#slice),*
+                ]
+            };
+
+            let tokens = quote! {
+                #path {
+                    list: #list,
+                }
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl ToTokens for Statement<'_> {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::Statement
+            };
+
+            let init = match self {
+                Self::Node(node) => quote! {
+                    Node(#node)
+                },
+                Self::Edge(edge) => quote! {
+                    Edge(#edge)
+                },
+                Self::Attribute(attribute) => quote! {
+                    Attribute(#attribute)
+                },
+                Self::PlainAttribute(plain) => quote! {
+                    PlainAttribute(#plain)
+                },
+                Self::Subgraph(subgraph) => quote! {
+                    Subgraph(#subgraph)
+                },
+            };
+
+            let tokens = quote! {
+                #path::#init
+            };
+
+            stream.extend(tokens);
+        }
+    }
+
+    impl Compass {
+        fn variant(&self) -> TokenStream {
+            match self {
+                Self::N => quote! {
+                    N
+                },
+                Self::NE => quote! {
+                    NE
+                },
+                Self::E => quote! {
+                    E
+                },
+                Self::SE => quote! {
+                    SE
+                },
+                Self::S => quote! {
+                    S
+                },
+                Self::SW => quote! {
+                    SW
+                },
+                Self::W => quote! {
+                    W
+                },
+                Self::NW => quote! {
+                    NW
+                },
+                Self::C => quote! {
+                    C
+                },
+                Self::Unspecified => quote! {
+                    Unspecified
+                },
+            }
+        }
+    }
+
+    impl ToTokens for Compass {
+        fn to_tokens(&self, stream: &mut TokenStream) {
+            let path = quote! {
+                graphs_dot_parser::ast::Compass
+            };
+
+            let variant = self.variant();
+
+            let tokens = quote! {
+                #path::#variant
+            };
+
+            stream.extend(tokens);
+        }
     }
 }

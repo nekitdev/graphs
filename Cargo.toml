@@ -206,17 +206,22 @@ default = [
     "algorithms",
     "union-find",
     "dot",
-    "dot-parser",
     "dot-macros",
 ]
 std = [
+    "graphs-acyclic?/std",
     "graphs-algorithms?/std",
     "graphs-bits?/std",
+    "graphs-common?/std",
+    "graphs-core/std",
+    "graphs-dot?/std",
+    "graphs-either?/std",
+    "graphs-map?/std",
+    "graphs-map?/std",
     "graphs-simple?/std",
     "graphs-stable?/std",
-    "graphs-map?/std",
     "graphs-traversal?/std",
-    "graphs-union-find?/std"
+    "graphs-union-find?/std",
 ]
 common = ["dep:graphs-common"]
 either = ["dep:graphs-either"]
@@ -230,21 +235,9 @@ map = ["dep:graphs-map"]
 traversal = ["dep:graphs-traversal"]
 union-find = ["dep:graphs-union-find"]
 dot = ["dep:graphs-dot"]
-dot-parser = ["graphs-dot?/parser"]
 dot-macros = ["graphs-dot?/macros"]
 serde = ["graphs-core/serde", "graphs-common?/serde", "graphs-either?/serde"]
 
 [package.metadata.docs.rs]
-features = [
-    "assert",
-    "algorithms",
-    "acyclic",
-    "bits",
-    "simple",
-    "stable",
-    "map",
-    "traversal",
-    "union-find",
-    "serde",
-]
+features = []
 rustdoc-args = ["--cfg", "docsrs"]

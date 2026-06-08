@@ -29,6 +29,18 @@ impl Output {
     pub const fn is_newly(self) -> bool {
         matches!(self, Self::Newly)
     }
+
+    pub const fn from_new(new: bool) -> Self {
+        if new { Self::Newly } else { Self::Previously }
+    }
+
+    pub const fn from_previous(previous: bool) -> Self {
+        if previous {
+            Self::Previously
+        } else {
+            Self::Newly
+        }
+    }
 }
 
 /// Represents visitors that can traverse graphs.
@@ -105,19 +117,19 @@ mod hash {
 
     use crate::id::NodeTypeId;
 
-    use super::Visitor;
+    use super::{Output, Visitor};
 
     impl<N: NodeTypeId, S: BuildHasher> Visitor<N> for HashSet<N, S> {
-        fn visit(&mut self, node: N) -> bool {
-            self.insert(node)
+        fn visit(&mut self, node: N) -> Output {
+            Output::from_new(self.insert(node))
         }
 
         fn was_visited(&self, node: N) -> bool {
             self.contains(&node)
         }
 
-        fn unvisit(&mut self, node: N) -> bool {
-            self.remove(&node)
+        fn unvisit(&mut self, node: N) -> Output {
+            Output::from_previous(self.remove(&node))
         }
     }
 }

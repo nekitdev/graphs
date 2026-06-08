@@ -12,7 +12,4 @@ pub(crate) mod internals;
 #[cfg(feature = "serde")]
 pub mod serde;
 
-#[cfg(feature = "std")]
-mod impls;
-
 pub use either::{Edge, Either, Node};

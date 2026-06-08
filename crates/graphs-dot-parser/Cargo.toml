@@ -13,11 +13,11 @@ keywords = ["graph", "dot"]
 
 [dependencies.non-empty-slice]
 workspace = true
-features = ["std", "ownership"]
+features = ["ownership", "alloc"]
 
 [dependencies.ownership]
 workspace = true
-features = ["std", "derive"]
+features = ["derive"]
 
 [dependencies.proc-macro2]
 workspace = true
@@ -27,23 +27,29 @@ optional = true
 workspace = true
 optional = true
 
+[dependencies.syn]
+workspace = true
+optional = true
+
 [dependencies.pest]
 workspace = true
-features = ["std"]
 
 [dependencies.pest_derive]
 workspace = true
-features = ["std"]
 
 [dependencies.thiserror]
+workspace = true
+
+[dependencies.trait-aliases]
 workspace = true
 
 [dependencies.graphs-core]
 workspace = true
 
 [features]
-default = []
-proc-macro = ["proc-macro2", "quote"]
+default = ["std"]
+std = ["non-empty-slice/std", "ownership/std", "pest/std", "pest_derive/std"]
+proc-macro = ["proc-macro2", "quote", "syn"]
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
